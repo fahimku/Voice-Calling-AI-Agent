@@ -1,0 +1,27 @@
+---
+description: Calling Agent stack and engineering rules
+alwaysApply: true
+---
+
+# Calling Agent
+
+AI outbound calling portal. English-only calls. Default timezone Asia/Dubai. Default phone region AE.
+
+## Stack
+
+- Next.js App Router, TypeScript strict, Tailwind, shadcn/ui
+- Supabase Postgres, Auth, and RLS. Migrations live in `supabase/migrations`
+- Zod on every external input (forms, route handlers, webhooks)
+- luxon for timezones, libphonenumber-js for E.164
+- papaparse and xlsx for imports, googleapis for Sheets write-back
+- Vapi behind a `VoiceProvider` interface. Vitest for scheduler logic
+
+## Rules
+
+- Keep TypeScript strict. Do not loosen `tsconfig` to silence errors.
+- Validate inputs with Zod before they touch the database or a provider.
+- Secrets stay on the server: `SUPABASE_SERVICE_ROLE_KEY`, `VAPI_API_KEY`, `VAPI_WEBHOOK_SECRET`, `CRON_SECRET`. Never import them from client components.
+- No hardcoded keys. Read env vars and never log their values.
+- Keep files small and focused. One module, one job.
+- Scheduler decisions are pure functions with Vitest coverage (window, limit, retries, DNC, timezone).
+- Call recordings are fetched server-side with `VAPI_API_KEY` and streamed to the owner. Store only a provider reference in `recording_ref`. Never store or expose a public recording URL.

@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import { Suspense } from "react";
 
 import { AppShell } from "@/components/app-shell";
@@ -18,6 +19,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 }
 
 async function AuthenticatedShell({ children }: { children: React.ReactNode }) {
+  await connection();
   const email = await getCurrentUserEmail();
   return <AppShell email={email}>{children}</AppShell>;
 }

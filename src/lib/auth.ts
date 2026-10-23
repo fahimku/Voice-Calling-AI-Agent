@@ -1,14 +1,25 @@
+import { connection } from "next/server";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 
-export async function getCurrentUserEmail(): Promise<string> {
+export async function requireUser() {
+  await connection();
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
 
-  if (!data?.claims) {
+  if (!data?.claims?.sub) {
     redirect("/login");
   }
 
-  return data.claims.email ?? "Account";
+  return {
+    supabase,
+    userId: data.claims.sub,
+    email: data.claims.email ?? "Account",
+  };
+}
+
+export async function getCurrentUserEmail(): Promise<string> {
+  const { email } = await requireUser();
+  return email;
 }

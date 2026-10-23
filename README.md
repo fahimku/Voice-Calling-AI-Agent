@@ -1,6 +1,6 @@
 # Calling Agent
 
-Portal for outbound AI calling campaigns. This README covers local setup for Phase 1: the app shell, email auth, and the database migration.
+Portal for outbound AI calling campaigns. This README covers local setup through Phase 2: the app shell, email auth, the database migration, and agents and campaigns.
 
 ## Requirements
 
@@ -45,6 +45,8 @@ supabase db push
 
 Replace `<ref>` with the project reference from the dashboard URL or Project Settings, then General. The app does not run these commands.
 
+Phase 2 adds `supabase/migrations/20261022230000_agent_phone_optional.sql`, which lets an agent be saved without a Vapi phone number ID. If you already pushed the first migration, run `supabase db push` again before leaving that field blank.
+
 5. Start the app:
 
 ```bash
@@ -58,4 +60,4 @@ Open http://localhost:3000. You will be asked to log in. After login you should 
 - `npm run dev` starts the local server
 - `npm run lint` runs ESLint
 - `npm run build` creates a production build
-- `npm test` runs Vitest. Scheduler tests arrive in a later phase
+- `npm test` runs Vitest, including the agent and campaign validation schemas

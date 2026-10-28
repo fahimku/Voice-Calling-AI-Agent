@@ -7,6 +7,7 @@ import type {
 } from "@/lib/providers/types";
 
 export const mockResultDelayMs = 3000;
+export const mockCallCostUsd = 0.02;
 
 type MockScript = {
   outcome: ProviderCallOutcome;
@@ -77,6 +78,8 @@ function completed(script: MockScript, startedAt: number): ProviderCall {
     structuredData: script.structuredData,
     outcome: script.outcome,
     endedAt: new Date(startedAt + script.durationSeconds * 1000).toISOString(),
+    costUsd: mockCallCostUsd,
+    costIsMock: true,
   };
 }
 

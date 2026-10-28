@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { DateTime } from "luxon";
 
+import { isMissingColumn } from "@/lib/db-error";
 import { updateLeadPreservingSync } from "@/lib/leads/dirty";
 import { retryAtIso } from "@/lib/scheduler/leads";
 
@@ -16,6 +17,8 @@ export type CallResultInput = {
   endedAt?: string | null;
   recordingRef?: string | null;
   rawPayload?: unknown;
+  costUsd?: number | null;
+  costIsMock?: boolean;
 };
 
 export type PlannedCallResult = {
@@ -246,23 +249,31 @@ export async function applyCallResult(
     if (leadUpdate.error) return { applied: false as const };
   }
 
-  const saved = await supabase
+  const callUpdate = {
+    status: plan.call.status,
+    ended_reason: plan.call.endedReason,
+    duration_seconds: plan.call.durationSeconds,
+    summary: plan.call.summary,
+    transcript: plan.call.transcript,
+    structured_data: plan.call.structuredData,
+    outcome: plan.call.outcome,
+    ended_at: plan.call.endedAt,
+    ...(safeRecordingRef(result.recordingRef) ? { recording_ref: safeRecordingRef(result.recordingRef) } : {}),
+    ...(result.rawPayload !== undefined ? { raw_payload: result.rawPayload } : {}),
+  };
+  const cost =
+    typeof result.costUsd === "number" && Number.isFinite(result.costUsd) && result.costUsd >= 0
+      ? { cost_usd: Math.round(result.costUsd * 10000) / 10000, cost_is_mock: result.costIsMock === true }
+      : {};
+  let saved = await supabase
     .from("calls")
-    .update({
-      status: plan.call.status,
-      ended_reason: plan.call.endedReason,
-      duration_seconds: plan.call.durationSeconds,
-      summary: plan.call.summary,
-      transcript: plan.call.transcript,
-      structured_data: plan.call.structuredData,
-      outcome: plan.call.outcome,
-      ended_at: plan.call.endedAt,
-      ...(safeRecordingRef(result.recordingRef) ? { recording_ref: safeRecordingRef(result.recordingRef) } : {}),
-      ...(result.rawPayload !== undefined ? { raw_payload: result.rawPayload } : {}),
-    })
+    .update({ ...callUpdate, ...cost })
     .eq("id", callId)
     .neq("status", "ended")
     .select("id");
+  if (saved.error && isMissingColumn(saved.error)) {
+    saved = await supabase.from("calls").update(callUpdate).eq("id", callId).neq("status", "ended").select("id");
+  }
 
   if (saved.error || !saved.data?.length) return { applied: false as const };
 

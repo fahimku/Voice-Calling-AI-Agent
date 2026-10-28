@@ -2,7 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { isMissingColumn } from "@/lib/db-error";
 import { DIRTY_LEAD_LIMIT } from "@/lib/sheets/api";
-import { sheetDateTime } from "@/lib/sheets/cells";
+import { sheetDateTime, sheetInterest } from "@/lib/sheets/cells";
 import type { DirtyLead } from "@/lib/sheets/plan";
 import { publicSheetError } from "@/lib/sheets/retry";
 import type { SheetSyncStore } from "@/lib/sheets/sync";
@@ -32,15 +32,15 @@ function statusLabel(status: string) {
   return status;
 }
 
-function interestLabel(value: string | null) {
-  if (!value) return "";
-  return value.charAt(0).toUpperCase() + value.slice(1);
-}
 
 export function createSheetSyncStore(supabase: SupabaseClient): SheetSyncStore {
   return {
     async loadCampaign(campaignId) {
-      const row = await supabase.from("campaigns").select("id, sheet_id, sheet_tab").eq("id", campaignId).maybeSingle();
+      const row = await supabase
+        .from("campaigns")
+        .select("id, sheet_id, sheet_tab, timezone")
+        .eq("id", campaignId)
+        .maybeSingle();
       if (row.error && isMissingColumn(row.error)) {
         const base = await supabase.from("campaigns").select("id, sheet_id").eq("id", campaignId).maybeSingle();
         if (base.error || !base.data) return null;
@@ -48,10 +48,16 @@ export function createSheetSyncStore(supabase: SupabaseClient): SheetSyncStore {
       }
       if (row.error || !row.data) return null;
       const tab = typeof row.data.sheet_tab === "string" && row.data.sheet_tab.trim() ? row.data.sheet_tab.trim() : "Leads";
-      return { id: String(row.data.id), sheetId: (row.data.sheet_id as string | null) ?? null, tab };
+      const timezone = typeof row.data.timezone === "string" && row.data.timezone.trim() ? row.data.timezone : "Asia/Dubai";
+      return { id: String(row.data.id), sheetId: (row.data.sheet_id as string | null) ?? null, tab, timezone };
     },
 
     async loadDirty(campaignId) {
+      const campaign = await supabase.from("campaigns").select("timezone").eq("id", campaignId).maybeSingle();
+      const zone =
+        !campaign.error && typeof campaign.data?.timezone === "string" && campaign.data.timezone.trim()
+          ? campaign.data.timezone
+          : "Asia/Dubai";
       const leads = await supabase
         .from("leads")
         .select("id, name, phone_e164, status, interest_level, callback_at, attempts, last_call_at, summary, sheet_row")
@@ -86,10 +92,10 @@ export function createSheetSyncStore(supabase: SupabaseClient): SheetSyncStore {
           name: row.name,
           phone: row.phone_e164,
           status: statusLabel(row.status),
-          interest: interestLabel(row.interest_level),
-          callbackAt: sheetDateTime(row.callback_at),
+          interest: sheetInterest(row.interest_level),
+          callbackAt: sheetDateTime(row.callback_at, zone),
           attempts: row.attempts,
-          lastCallAt: sheetDateTime(row.last_call_at),
+          lastCallAt: sheetDateTime(row.last_call_at, zone),
           summary: row.summary,
           notes: call?.notes ?? "",
           sheetRow: row.sheet_row,

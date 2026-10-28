@@ -3,6 +3,7 @@ import { Suspense } from "react";
 
 import { AppShell } from "@/components/app-shell";
 import { getCurrentUserEmail } from "@/lib/auth";
+import { voiceProviderMode } from "@/lib/providers/mode";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -21,5 +22,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 async function AuthenticatedShell({ children }: { children: React.ReactNode }) {
   await connection();
   const email = await getCurrentUserEmail();
-  return <AppShell email={email}>{children}</AppShell>;
+  return (
+    <AppShell email={email} mode={voiceProviderMode()}>
+      {children}
+    </AppShell>
+  );
 }

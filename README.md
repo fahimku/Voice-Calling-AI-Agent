@@ -1,6 +1,6 @@
 # Calling Agent
 
-Portal for outbound AI calling campaigns. This README covers local setup through Phase 7: the app shell, email auth, agents, campaigns, leads, test calls, the scheduler, call results, and Google Sheets.
+Portal for outbound AI calling campaigns. This README covers local setup through Phase 8: the app shell, email auth, agents, campaigns, leads, test calls, the scheduler, call results, Google Sheets, and the dashboard. Hosting notes are in `DEPLOYMENT.md`.
 
 ## Requirements
 
@@ -92,6 +92,18 @@ Create a Google Cloud service account, enable the Google Sheets API, and downloa
 The call link written to the sheet opens `/calls/<id>` and requires login. Recording URLs are not written to the sheet. Import from Google Sheet uses the same preview as a CSV import. Sync now, the scheduler tick, and a successful end-of-call webhook write result columns back. A Sheets outage leaves the lead marked pending sync and does not stop calling.
 
 This MVP uses one service account for every user. Connect only sheets you own. TODO: per-user OAuth or a sheet-ownership check before multi-client use.
+
+Phase 8 adds the dashboard, call cost, and a go-live checklist. Run the new migration before cost and dashboard totals will load:
+
+```bash
+npx supabase db push
+```
+
+The dashboard shows today’s calls against the daily limits of active campaigns, interested leads this week, callbacks that are due, calls and estimated cost this month, a 14-day outcome chart, a campaign funnel, and the last 10 calls. The header shows MOCK MODE or LIVE MODE from `VOICE_PROVIDER_MODE`. Pause all campaigns on the dashboard sets every active campaign to paused. Completed campaigns can be reopened to paused, and importing leads into a completed campaign pauses it again.
+
+Sheet times are written in the campaign timezone, for example `29 Oct 2026, 02:49`. Interest `none` is written as `None`. After `NEXT_PUBLIC_APP_URL` changes, use Re-sync all rows and then Sync now so old call links are replaced.
+
+`/settings/go-live` reports PASS or FAIL and does not show secret values. `GET /api/health` reports whether the app can reach the database. Hosting, the 5-minute cron, and the first real calls are described in `DEPLOYMENT.md`. Mock calls store a small fake cost marked as mock. A live end-of-call report stores Vapi’s `message.cost` in USD when that field is present.
 
 5. Start the app:
 

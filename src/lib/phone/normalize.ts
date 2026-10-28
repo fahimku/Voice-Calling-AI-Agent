@@ -10,6 +10,14 @@ export type PhoneResult =
 
 const looseSeparators = /[\s()./-]/g;
 
+export function isObviouslyFakeNumber(digits: string) {
+  const body = digits.replace(/\D/g, "");
+  if (/^12345\d{5,}$/.test(body)) return true;
+  if (/^(\d)\1{6,}$/.test(body)) return true;
+  if (/^(\d{2,4})\1{2,}\d?$/.test(body)) return true;
+  return false;
+}
+
 export function expandScientificNotation(value: string) {
   const match = value.trim().match(/^([+-]?)(\d+)(?:\.(\d+))?[eE]([+-]?\d+)$/);
   if (!match) return null;
@@ -48,6 +56,7 @@ export function normalizePhone(input: string, region: CountryCode = defaultPhone
 
   const compact = trimmed.replace(looseSeparators, "");
   if (!/^\+?\d+$/.test(compact)) return { ok: false, reason: "invalid" };
+  if (isObviouslyFakeNumber(compact)) return { ok: false, reason: "invalid" };
 
   const parsed = parsePhoneNumberFromString(compact.startsWith("+") ? compact : trimmed, region);
   if (parsed?.isValid()) return { ok: true, e164: parsed.number };

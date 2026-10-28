@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { getSupabasePublicEnv } from "@/lib/env";
 
-const PUBLIC_PATHS = new Set(["/login", "/signup", "/api/scheduler/tick", "/api/webhooks/vapi"]);
+const PUBLIC_PATHS = new Set(["/login", "/signup", "/api/scheduler/tick", "/api/webhooks/vapi", "/api/health"]);
 
 function isRecordingPath(path: string) {
   return /^\/api\/calls\/[^/]+\/recording$/.test(path);

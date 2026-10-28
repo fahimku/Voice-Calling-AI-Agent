@@ -7,6 +7,7 @@ import { TranscriptView } from "@/components/calls/transcript-view";
 import { Badge } from "@/components/ui/badge";
 import { DeferredPage } from "@/components/deferred-page";
 import { getCallDetail } from "@/lib/calls/log";
+import { formatUsd } from "@/lib/dashboard/aggregate";
 import { formatDateTime, formatDuration } from "@/lib/format";
 
 export default function CallDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -56,6 +57,13 @@ async function CallDetailContent({ params }: { params: Promise<{ id: string }> }
         <div>
           <dt className="text-xs text-muted-foreground">Outcome</dt>
           <dd className="text-sm font-medium capitalize">{call.outcome?.replaceAll("_", " ") ?? "—"}</dd>
+        </div>
+        <div>
+          <dt className="text-xs text-muted-foreground">Cost</dt>
+          <dd className="text-sm font-medium">
+            {call.costUsd == null || !Number.isFinite(call.costUsd) ? "—" : formatUsd(call.costUsd)}
+            {call.costIsMock ? " (mock)" : ""}
+          </dd>
         </div>
         <div>
           <dt className="text-xs text-muted-foreground">Interested</dt>

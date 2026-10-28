@@ -2,6 +2,7 @@ import { DateTime } from "luxon";
 import { z } from "zod";
 
 import { requireUser } from "@/lib/auth";
+import { isMissingColumn } from "@/lib/db-error";
 import { maskPhone } from "@/lib/phone/normalize";
 
 export const callsPageSize = 25;
@@ -166,23 +167,27 @@ export type CallDetail = {
   durationSeconds: number | null;
   startedAt: string | null;
   doNotCall: boolean;
+  costUsd: number | null;
+  costIsMock: boolean;
 };
 
 export async function getCallDetail(id: string) {
   const { supabase, userId } = await requireUser();
-  const result = await supabase
-    .from("calls")
-    .select(
-      `
+  const columns = `
       id, campaign_id, lead_id, status, outcome, ended_reason, summary, transcript,
       structured_data, recording_ref, duration_seconds, started_at,
       campaigns!inner ( name, owner_id ),
       leads ( id, name, phone_e164, status )
-    `,
-    )
+    `;
+  let result = await supabase
+    .from("calls")
+    .select(`${columns}, cost_usd, cost_is_mock`)
     .eq("id", id)
     .eq("campaigns.owner_id", userId)
     .maybeSingle();
+  if (result.error && isMissingColumn(result.error)) {
+    result = await supabase.from("calls").select(columns).eq("id", id).eq("campaigns.owner_id", userId).maybeSingle();
+  }
 
   if (result.error || !result.data) return null;
   const row = result.data;
@@ -210,5 +215,7 @@ export async function getCallDetail(id: string) {
     durationSeconds: typeof row.duration_seconds === "number" ? row.duration_seconds : null,
     startedAt: typeof row.started_at === "string" ? row.started_at : null,
     doNotCall: row.outcome === "do_not_call",
+    costUsd: typeof row.cost_usd === "number" ? row.cost_usd : row.cost_usd == null ? null : Number(row.cost_usd),
+    costIsMock: row.cost_is_mock === true,
   } satisfies CallDetail;
 }

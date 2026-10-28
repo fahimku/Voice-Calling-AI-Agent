@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import {
   disconnectSheet,
+  resyncAllSheetRows,
   saveSheetConnection,
   syncSheetNow,
   testSheetConnection,
@@ -28,9 +29,12 @@ export function SheetCard({
   const router = useRouter();
   const [sheet, setSheet] = useState(settings.sheetInput);
   const [tab, setTab] = useState(settings.tab);
-  const [pending, setPending] = useState<"save" | "test" | "sync" | "disconnect" | null>(null);
+  const [pending, setPending] = useState<"save" | "test" | "sync" | "disconnect" | "resync" | null>(null);
 
-  async function run(action: "save" | "test" | "sync" | "disconnect", task: () => Promise<{ error?: string; message?: string }>) {
+  async function run(
+    action: "save" | "test" | "sync" | "disconnect" | "resync",
+    task: () => Promise<{ error?: string; message?: string }>,
+  ) {
     setPending(action);
     const result = await task();
     setPending(null);
@@ -116,10 +120,19 @@ export function SheetCard({
           >
             {pending === "sync" ? "Syncing…" : "Sync now"}
           </Button>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={pending !== null || !settings.connected}
+            onClick={() => void run("resync", () => resyncAllSheetRows(campaignId))}
+          >
+            {pending === "resync" ? "Marking…" : "Re-sync all rows"}
+          </Button>
           <SheetImportButton campaignId={campaignId} active={active} />
         </div>
         <p className="text-sm text-muted-foreground">
-          Last synced: {settings.lastSyncedAt ? formatDateTime(settings.lastSyncedAt) : "Not yet"}
+          Last synced: {settings.lastSyncedAt ? formatDateTime(settings.lastSyncedAt) : "Not yet"}. After the site URL
+          changes, use Re-sync all rows, then Sync now, so call links are rewritten.
         </p>
         {settings.lastError ? <p className="text-sm text-destructive">{settings.lastError}</p> : null}
       </CardContent>

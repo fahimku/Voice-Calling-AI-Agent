@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { MockProvider, mockResultDelayMs, resetMockCalls } from "@/lib/providers/mock";
+import { MockProvider, mockCallCostUsd, mockResultDelayMs, resetMockCalls } from "@/lib/providers/mock";
 
 const input = {
   to: "+971501234567",
@@ -46,6 +46,8 @@ describe("MockProvider", () => {
       summary: "The customer asked about class times and sounded interested.",
       structuredData: { interested: true, interest_level: "high" },
       durationSeconds: 42,
+      costUsd: mockCallCostUsd,
+      costIsMock: true,
     });
     expect(again).toEqual(done);
   });

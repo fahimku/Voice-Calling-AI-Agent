@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import type { CallResultInput } from "@/lib/calls/applyCallResult";
+import { extractCallCost } from "@/lib/calls/cost";
 import { mapEndedReason } from "@/lib/calls/ended-reason";
 import { redactPayload } from "@/lib/calls/redact";
 import { extractStructuredFields } from "@/lib/calls/structured-output";
@@ -90,6 +91,8 @@ export function readEndOfCallReport(payload: unknown): EndOfCallReport | null {
       endedAt,
       recordingRef: providerCallId && hasRecording(message, call) ? `vapi:${providerCallId}` : null,
       rawPayload: redactPayload(payload),
+      costUsd: extractCallCost(message, call),
+      costIsMock: false,
     },
   };
 }

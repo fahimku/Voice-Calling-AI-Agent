@@ -19,6 +19,8 @@ export type ProviderCall = {
   structuredData?: Record<string, unknown>;
   outcome?: ProviderCallOutcome;
   endedAt?: string;
+  costUsd?: number;
+  costIsMock?: boolean;
 };
 
 export type StartCallInput = {

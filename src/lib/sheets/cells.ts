@@ -14,11 +14,20 @@ export function sanitizeSheetCell(value: unknown) {
   return truncated;
 }
 
-export function sheetDateTime(value: string | null) {
+export function sheetDateTime(value: string | null, zone = "Asia/Dubai") {
   if (!value) return "";
-  const date = DateTime.fromISO(value, { zone: "utc" }).setZone("Asia/Dubai");
+  const utc = DateTime.fromISO(value, { zone: "utc" });
+  if (!utc.isValid) return "";
+  const zoned = utc.setZone(zone);
+  const date = zoned.isValid ? zoned : utc.setZone("Asia/Dubai");
   if (!date.isValid) return "";
   return date.toFormat("d LLL yyyy, HH:mm");
+}
+
+export function sheetInterest(value: string | null) {
+  if (!value) return "";
+  if (value === "none") return "None";
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
 export function callLink(appUrl: string | undefined, callId: string | null) {

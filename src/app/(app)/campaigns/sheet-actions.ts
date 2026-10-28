@@ -124,6 +124,29 @@ export async function syncSheetNow(campaignId: string) {
   return { ok: true as const, message: `Synced ${result.updated} leads.` };
 }
 
+export async function resyncAllSheetRows(campaignId: string) {
+  const campaign = await ownedCampaign(campaignId);
+  if ("error" in campaign) return campaign;
+  if (!campaign.owned.campaign.sheetId) return { error: "Connect a Google Sheet first." };
+
+  const updated = await campaign.owned.supabase
+    .from("leads")
+    .update({ sheet_dirty: true }, { count: "exact" })
+    .eq("campaign_id", campaign.owned.campaign.id);
+  if (updated.error && isMissingColumn(updated.error)) return { error: migrationRequiredMessage };
+  if (updated.error) return { error: "Could not mark leads for sync." };
+
+  revalidateCampaign(campaign.owned.campaign.id);
+  const count = updated.count ?? 0;
+  return {
+    ok: true as const,
+    message:
+      count > 0
+        ? `Marked ${count} leads to sync again. Use Sync now to replace old call links.`
+        : "There are no leads to sync.",
+  };
+}
+
 export async function previewSheetImport(campaignId: string) {
   const campaign = await ownedCampaign(campaignId);
   if ("error" in campaign) return campaign;

@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { leadInsertRow } from "@/lib/leads/insert-row";
 import { batchWriteRows, verifyAccess, type SheetsApi, type ValueRange } from "@/lib/sheets/api";
-import { callLink, sanitizeSheetCell } from "@/lib/sheets/cells";
+import { callLink, sanitizeSheetCell, sheetDateTime, sheetInterest } from "@/lib/sheets/cells";
 import { privateKeyFromEnv, serviceAccountCredentials, type SheetRuntime } from "@/lib/sheets/env";
 import { DEFAULT_HEADERS, planHeaders, RESULT_HEADERS } from "@/lib/sheets/headers";
 import { parseSheetId } from "@/lib/sheets/parse";
@@ -70,6 +70,18 @@ describe("parseSheetId", () => {
     expect(parseSheetId("not a sheet")).toBeNull();
     expect(parseSheetId("https://example.com/spreadsheets/d/short/edit")).toBeNull();
     expect(parseSheetId("https://docs.google.com/document/d/abcdefghijabcdefghij/edit")).toBeNull();
+  });
+});
+
+describe("sheet timestamps and interest", () => {
+  it("writes timestamps in the campaign timezone and labels none as None", () => {
+    expect(sheetDateTime("2026-10-28T22:49:00.000Z", "Asia/Dubai")).toBe("29 Oct 2026, 02:49");
+    expect(sheetDateTime("2026-10-28T22:49:00.000Z", "UTC")).toBe("28 Oct 2026, 22:49");
+    expect(sheetDateTime("2026-10-28T22:49:00.000Z", "Asia/Kolkata")).toBe("29 Oct 2026, 04:19");
+    expect(sheetDateTime(null, "Asia/Dubai")).toBe("");
+    expect(sheetInterest("none")).toBe("None");
+    expect(sheetInterest("high")).toBe("High");
+    expect(sheetInterest(null)).toBe("");
   });
 });
 

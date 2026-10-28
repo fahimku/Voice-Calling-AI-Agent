@@ -1,4 +1,5 @@
 import { migrationRequiredMessage, isMissingColumn } from "@/lib/db-error";
+import { sheetDateTime } from "@/lib/sheets/cells";
 import { appendRows, batchWriteRows, ensureHeaders, readRows, SheetAccessError, verifyAccess, type SheetsApi } from "@/lib/sheets/api";
 import type { SheetRuntime } from "@/lib/sheets/env";
 import { planSheetWrite, type DirtyLead } from "@/lib/sheets/plan";
@@ -8,6 +9,7 @@ export type SheetCampaign = {
   id: string;
   sheetId: string | null;
   tab: string;
+  timezone?: string;
 };
 
 export type SheetSyncStore = {
@@ -54,7 +56,7 @@ export async function syncCampaignToSheet(
       rows: grid.rows,
       leads,
       appUrl: env.appUrl,
-      updatedAt: env.updatedAt,
+      updatedAt: sheetDateTime(env.updatedAt, campaign.timezone || "Asia/Dubai"),
     });
     await batchWriteRows(
       api,

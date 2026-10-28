@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 
 import { logout } from "@/app/(auth)/actions";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -65,6 +66,10 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
+function ModeBadge({ mode }: { mode: "mock" | "live" }) {
+  return <Badge variant={mode === "live" ? "default" : "outline"}>{mode === "live" ? "LIVE MODE" : "MOCK MODE"}</Badge>;
+}
+
 function AccountFooter({ email }: { email: string }) {
   return (
     <div className="flex flex-col gap-3">
@@ -108,9 +113,11 @@ function MobileNav({ email }: { email: string }) {
 
 export function AppShell({
   email,
+  mode,
   children,
 }: {
   email: string;
+  mode: "mock" | "live";
   children: React.ReactNode;
 }) {
   return (
@@ -128,9 +135,14 @@ export function AppShell({
         </div>
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center gap-3 border-b px-4 py-3 md:hidden">
-          <MobileNav email={email} />
-          <p className="text-sm font-semibold">Calling Agent</p>
+        <header className="flex items-center gap-3 border-b px-4 py-3">
+          <div className="md:hidden">
+            <MobileNav email={email} />
+          </div>
+          <p className="text-sm font-semibold md:hidden">Calling Agent</p>
+          <div className="ml-auto">
+            <ModeBadge mode={mode} />
+          </div>
         </header>
         <main className="flex-1 px-4 py-6 md:px-8">{children}</main>
       </div>

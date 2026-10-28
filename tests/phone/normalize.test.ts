@@ -43,6 +43,14 @@ describe("normalizePhone", () => {
     expect(normalizePhone("12345")).toEqual({ ok: false, reason: "invalid" });
     expect(sheetCellText(971501234567)).toBe("971501234567");
   });
+
+  it("rejects obviously fake numbers even when a leading plus would look valid", () => {
+    expect(normalizePhone("12345465767")).toEqual({ ok: false, reason: "invalid" });
+    expect(normalizePhone("56565656565")).toEqual({ ok: false, reason: "invalid" });
+    expect(normalizePhone("1234546576786")).toEqual({ ok: false, reason: "invalid" });
+    expect(normalizePhone("+12345465767")).toEqual({ ok: false, reason: "invalid" });
+    expect(normalizePhone("+56565656565")).toEqual({ ok: false, reason: "invalid" });
+  });
 });
 
 describe("maskPhone", () => {

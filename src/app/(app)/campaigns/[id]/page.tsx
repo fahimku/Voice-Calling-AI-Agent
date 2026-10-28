@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 
+import { CampaignSectionNav } from "@/components/campaigns/campaign-section-nav";
 import { DeleteCampaignButton } from "@/components/campaigns/delete-campaign-button";
 import { StatusActions } from "@/components/campaigns/status-actions";
 import { StatusBadge } from "@/components/campaigns/status-badge";
@@ -87,6 +88,7 @@ async function CampaignDetailContent({
           <DeleteCampaignButton id={campaign.id} name={campaign.name} />
         </div>
       </div>
+      <CampaignSectionNav campaignId={campaign.id} current="settings" />
       <StatusActions
         campaignId={campaign.id}
         status={campaign.status}
@@ -116,8 +118,13 @@ async function CampaignDetailContent({
           <CardHeader>
             <CardTitle>Leads</CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">Coming in the next phases.</p>
+          <CardContent className="flex flex-col items-start gap-3">
+            <p className="text-sm text-muted-foreground">
+              Import a list, add a number, or export the leads in this campaign.
+            </p>
+            <Link href={`/campaigns/${campaign.id}/leads`} className={buttonVariants({ variant: "outline" })}>
+              Open leads
+            </Link>
           </CardContent>
         </Card>
       </div>

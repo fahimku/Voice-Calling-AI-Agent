@@ -47,6 +47,8 @@ Replace `<ref>` with the project reference from the dashboard URL or Project Set
 
 Phase 2 adds `supabase/migrations/20261022230000_agent_phone_optional.sql`, which lets an agent be saved without a Vapi phone number ID. If you already pushed the first migration, run `supabase db push` again before leaving that field blank.
 
+Phase 3 uses the `leads` and `dnc_numbers` tables from the initial migration. There is no new migration. Open a campaign, choose Leads, and import a CSV or Excel file. Phone numbers are normalized to E.164 with UAE (`AE`) as the default region.
+
 5. Start the app:
 
 ```bash

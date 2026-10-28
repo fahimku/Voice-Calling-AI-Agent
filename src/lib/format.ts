@@ -18,6 +18,13 @@ export function formatCreated(value: string) {
   return date.toFormat("d LLL yyyy");
 }
 
+export function formatDateTime(value: string | null) {
+  if (!value) return "—";
+  const date = DateTime.fromISO(value, { zone: "utc" }).setZone("Asia/Dubai");
+  if (!date.isValid) return "—";
+  return date.toFormat("d LLL yyyy, HH:mm");
+}
+
 export function shortenId(value: string) {
   if (value.length <= 14) return value;
   return `${value.slice(0, 8)}…${value.slice(-4)}`;

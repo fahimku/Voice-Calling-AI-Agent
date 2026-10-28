@@ -82,9 +82,42 @@ export const campaignSchema = campaignObjectSchema.superRefine((value, ctx) => {
 export type CampaignInput = z.infer<typeof campaignSchema>;
 
 export const campaignStatusActionSchema = z.enum(
-  ["start", "pause", "resume", "complete"],
+  ["start", "pause", "resume", "complete", "reopen"],
   { error: "Choose a status change." },
 );
+
+const campaignStatusChanges = {
+  start: { from: ["draft"], to: "active" },
+  pause: { from: ["active"], to: "paused" },
+  resume: { from: ["paused"], to: "active" },
+  complete: { from: ["draft", "active", "paused"], to: "completed" },
+  reopen: { from: ["completed"], to: "paused" },
+} as const;
+
+export type CampaignStatusIntent = keyof typeof campaignStatusChanges;
+
+export function campaignStatusChange(intent: string, status: string) {
+  if (!(intent in campaignStatusChanges)) return null;
+  const change = campaignStatusChanges[intent as CampaignStatusIntent];
+  if (!(change.from as readonly string[]).includes(status)) return null;
+  return change.to;
+}
+
+export function shouldPauseForNewLeads(status: string, inserted: number) {
+  return status === "completed" && inserted > 0;
+}
+
+const sheetActionStatuses = ["draft", "active", "paused", "completed"] as const;
+
+export function sheetActionsAllowed(status: string) {
+  return (sheetActionStatuses as readonly string[]).includes(status);
+}
+
+export function ownedCampaignError(input: { queryFailed: boolean; found: boolean }) {
+  if (input.queryFailed) return "Could not load this campaign.";
+  if (!input.found) return "Campaign not found.";
+  return null;
+}
 
 export function campaignCanStart(input: {
   agentId: string;

@@ -43,7 +43,15 @@ export function StatusActions({
   }, [state]);
 
   if (status === "completed") {
-    return <p className="text-sm text-muted-foreground">This campaign is completed.</p>;
+    return (
+      <div className="flex flex-col gap-2">
+        <form action={action} className="flex flex-wrap items-center gap-2">
+          <StatusButton intent="reopen">Reopen</StatusButton>
+          <p className="text-sm text-muted-foreground">Reopen moves this campaign to paused.</p>
+        </form>
+        {state.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
+      </div>
+    );
   }
 
   return (

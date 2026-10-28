@@ -21,10 +21,12 @@ export function LeadsTable({
   campaignId,
   leads,
   createdSort,
+  sheetConnected,
 }: {
   campaignId: string;
   leads: LeadListItem[];
   createdSort: React.ReactNode;
+  sheetConnected: boolean;
 }) {
   const [showFull, setShowFull] = useState(false);
 
@@ -44,6 +46,7 @@ export function LeadsTable({
             <TableHead>Attempts</TableHead>
             <TableHead>Last call</TableHead>
             <TableHead>Summary</TableHead>
+            <TableHead>Sheet</TableHead>
             <TableHead>{createdSort}</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
@@ -63,6 +66,13 @@ export function LeadsTable({
               <TableCell>{formatDateTime(lead.last_call_at)}</TableCell>
               <TableCell className="max-w-48 truncate" title={lead.summary ?? undefined}>
                 {lead.summary ?? "—"}
+              </TableCell>
+              <TableCell>
+                {sheetConnected && lead.sheetDirty != null ? (
+                  <span className="text-xs text-muted-foreground">{lead.sheetDirty ? "Pending sync" : "Synced"}</span>
+                ) : (
+                  "—"
+                )}
               </TableCell>
               <TableCell>{formatCreated(lead.created_at)}</TableCell>
               <TableCell>

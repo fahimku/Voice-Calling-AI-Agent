@@ -17,7 +17,10 @@ export function AddLeadForm({ campaignId }: { campaignId: string }) {
   useEffect(() => {
     if (state.error) toast.error(state.error, { id: state.error });
     if (state.ok) {
-      toast.success("Lead added.", { id: "lead-added" });
+      toast.success(
+        state.reopened ? "Lead added. This completed campaign is paused again." : "Lead added.",
+        { id: "lead-added" },
+      );
       formRef.current?.reset();
       router.refresh();
     }

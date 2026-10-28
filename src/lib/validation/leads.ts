@@ -38,6 +38,7 @@ export const leadImportRowSchema = z.object({
   extra: z.record(z.string().max(80), z.string().max(500)).refine((value) => Object.keys(value).length <= 30, {
     message: "A row has too many extra columns.",
   }),
+  sheetRow: z.number().int().min(2).max(1_000_000).optional(),
 });
 
 export const leadImportSchema = z.object({

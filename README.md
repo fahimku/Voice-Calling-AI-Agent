@@ -1,6 +1,6 @@
 # Calling Agent
 
-Portal for outbound AI calling campaigns. This README covers local setup through Phase 6: the app shell, email auth, agents, campaigns, leads, test calls, the scheduler, and call results.
+Portal for outbound AI calling campaigns. This README covers local setup through Phase 7: the app shell, email auth, agents, campaigns, leads, test calls, the scheduler, call results, and Google Sheets.
 
 ## Requirements
 
@@ -80,6 +80,18 @@ Create a structured output named “Call outcome” and attach its id in the ass
 ```
 
 The assistant should say it is an AI and that the call may be recorded, then honour a request not to be called. A usable opening line is: “Hi, this is {agent_name}, an AI assistant calling on behalf of {business_name}. This call may be recorded. Do you have a quick minute?”
+
+Phase 7 writes call results to a Google Sheet and can import leads from that sheet. Run the new migration before using it:
+
+```bash
+npx supabase db push
+```
+
+Create a Google Cloud service account, enable the Google Sheets API, and download a JSON key. Put the client email in `GOOGLE_SERVICE_ACCOUNT_EMAIL` and the PEM private key in `GOOGLE_PRIVATE_KEY`. If the key contains the two characters `\` and `n`, the app turns those into real newlines. Set `NEXT_PUBLIC_APP_URL` to the site URL, for example `http://localhost:3000`, then restart the app. In the sheet, click Share and add the service account email as Editor. On the campaign page, paste the sheet link, set the tab (default `Leads`), and use Test connection.
+
+The call link written to the sheet opens `/calls/<id>` and requires login. Recording URLs are not written to the sheet. Import from Google Sheet uses the same preview as a CSV import. Sync now, the scheduler tick, and a successful end-of-call webhook write result columns back. A Sheets outage leaves the lead marked pending sync and does not stop calling.
+
+This MVP uses one service account for every user. Connect only sheets you own. TODO: per-user OAuth or a sheet-ownership check before multi-client use.
 
 5. Start the app:
 

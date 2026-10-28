@@ -145,7 +145,12 @@ export function ImportDialog({ campaignId, active }: { campaignId: string; activ
     }
     setResult({ inserted: response.inserted ?? 0, skipped: response.skipped ?? 0 });
     setStep("done");
-    toast.success(`Imported ${response.inserted ?? 0} leads.`, { id: "leads-imported" });
+    toast.success(
+      response.reopened
+        ? `Imported ${response.inserted ?? 0} leads. This completed campaign is paused again.`
+        : `Imported ${response.inserted ?? 0} leads.`,
+      { id: "leads-imported" },
+    );
     router.refresh();
   }
 
@@ -239,7 +244,8 @@ export function ImportDialog({ campaignId, active }: { campaignId: string; activ
                     <th className="py-2 pr-3 font-medium">Row</th>
                     <th className="py-2 pr-3 font-medium">Name</th>
                     <th className="py-2 pr-3 font-medium">Phone</th>
-                    <th className="py-2 font-medium">Status</th>
+                    <th className="py-2 pr-3 font-medium">Status</th>
+                    <th className="py-2 font-medium">Reason</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -248,11 +254,12 @@ export function ImportDialog({ campaignId, active }: { campaignId: string; activ
                       <td className="py-2 pr-3">{row.rowNumber}</td>
                       <td className="py-2 pr-3">{row.name ?? "—"}</td>
                       <td className="py-2 pr-3">{row.phone ?? row.rawPhone}</td>
-                      <td className="py-2">
+                      <td className="py-2 pr-3">
                         <Badge variant={row.status === "valid" ? "default" : "outline"}>
                           {previewLabels[row.status]}
                         </Badge>
                       </td>
+                      <td className="py-2">{row.reason ?? "—"}</td>
                     </tr>
                   ))}
                 </tbody>

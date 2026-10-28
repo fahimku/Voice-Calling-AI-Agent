@@ -1,5 +1,6 @@
 import { requireUser } from "@/lib/auth";
 import type { CampaignStatus } from "@/lib/campaigns";
+import { isMissingColumn } from "@/lib/db-error";
 import { normalizePhone } from "@/lib/phone/normalize";
 import { leadStatuses, type LeadStatus } from "@/lib/validation/leads";
 
@@ -25,6 +26,7 @@ export type LeadListItem = {
   last_call_at: string | null;
   summary: string | null;
   created_at: string;
+  sheetDirty: boolean | null;
 };
 
 export type LeadListQuery = {
@@ -59,7 +61,7 @@ export async function getOwnedCampaign(id: string) {
   const { supabase, userId } = await requireUser();
   const { data, error } = await supabase
     .from("campaigns")
-    .select("id, name, status, owner_id")
+    .select("id, name, status, owner_id, sheet_id")
     .eq("id", id)
     .eq("owner_id", userId)
     .maybeSingle();
@@ -74,6 +76,7 @@ export async function getOwnedCampaign(id: string) {
       id: data.id as string,
       name: data.name as string,
       status: data.status as CampaignStatus,
+      sheetId: (data.sheet_id as string | null) ?? null,
     },
   };
 }
@@ -105,27 +108,41 @@ export async function listLeads(campaignId: string, query: LeadListQuery) {
 
   const token = searchToken(query.q);
   const normalized = token ? normalizePhone(token) : null;
+  let includeDirty = true;
 
   function pageQuery() {
-    let request = scope.supabase
-      .from("leads")
-      .select("id, name, phone_e164, status, interest_level, attempts, last_call_at, summary, created_at", {
-        count: "exact",
-      })
-      .eq("campaign_id", campaignId);
+    const request = includeDirty
+      ? scope.supabase
+          .from("leads")
+          .select(
+            "id, name, phone_e164, status, interest_level, attempts, last_call_at, summary, created_at, sheet_dirty",
+            { count: "exact" },
+          )
+          .eq("campaign_id", campaignId)
+      : scope.supabase
+          .from("leads")
+          .select("id, name, phone_e164, status, interest_level, attempts, last_call_at, summary, created_at", {
+            count: "exact",
+          })
+          .eq("campaign_id", campaignId);
 
-    if (token) {
-      const filters = [`name.ilike.%${token}%`, `phone_e164.ilike.%${token}%`];
-      if (normalized?.ok) filters.push(`phone_e164.eq.${normalized.e164}`);
-      request = request.or(filters.join(","));
-    }
-    if (query.status) request = request.eq("status", query.status);
-
-    return request.order("created_at", { ascending: query.sort === "asc" });
+    const filtered = token
+      ? request.or(
+          [`name.ilike.%${token}%`, `phone_e164.ilike.%${token}%`, ...(normalized?.ok ? [`phone_e164.eq.${normalized.e164}`] : [])].join(
+            ",",
+          ),
+        )
+      : request;
+    const scoped = query.status ? filtered.eq("status", query.status) : filtered;
+    return scoped.order("created_at", { ascending: query.sort === "asc" });
   }
 
   const from = (query.page - 1) * LEADS_PAGE_SIZE;
-  const first = await pageQuery().range(from, from + LEADS_PAGE_SIZE - 1);
+  let first = await pageQuery().range(from, from + LEADS_PAGE_SIZE - 1);
+  if (first.error && isMissingColumn(first.error)) {
+    includeDirty = false;
+    first = await pageQuery().range(from, from + LEADS_PAGE_SIZE - 1);
+  }
 
   if (first.error) throw new Error("Could not load leads.");
 
@@ -145,11 +162,39 @@ export async function listLeads(campaignId: string, query: LeadListQuery) {
 
   return {
     campaign: owned.campaign,
-    leads: (rows ?? []) as LeadListItem[],
+    leads: (rows ?? []).map((row) => mapLeadRow(row as LeadQueryRow, includeDirty)),
     total,
     page,
     pageCount,
     counts,
+  };
+}
+
+type LeadQueryRow = {
+  id: string;
+  name: string | null;
+  phone_e164: string;
+  status: string;
+  interest_level: string | null;
+  attempts: number;
+  last_call_at: string | null;
+  summary: string | null;
+  created_at: string;
+  sheet_dirty?: boolean | null;
+};
+
+function mapLeadRow(row: LeadQueryRow, includeDirty: boolean): LeadListItem {
+  return {
+    id: String(row.id),
+    name: (row.name as string | null) ?? null,
+    phone_e164: String(row.phone_e164),
+    status: row.status as LeadStatus,
+    interest_level: (row.interest_level as string | null) ?? null,
+    attempts: Number(row.attempts),
+    last_call_at: (row.last_call_at as string | null) ?? null,
+    summary: (row.summary as string | null) ?? null,
+    created_at: String(row.created_at),
+    sheetDirty: includeDirty ? Boolean(row.sheet_dirty) : null,
   };
 }
 
@@ -169,7 +214,7 @@ export async function listLeadsForExport(campaignId: string) {
       .range(from, from + pageSize - 1);
 
     if (error) throw new Error("Could not export leads.");
-    const batch = (data ?? []) as LeadListItem[];
+    const batch = (data ?? []).map((row) => mapLeadRow(row as LeadQueryRow, false));
     leads.push(...batch);
     if (batch.length < pageSize) break;
   }

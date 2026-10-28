@@ -6,12 +6,12 @@ import { z } from "zod";
 
 import { requireUser } from "@/lib/auth";
 import { friendlyDbError } from "@/lib/db-error";
-import type { CampaignStatus } from "@/lib/campaigns";
 import type { ActionState } from "@/lib/validation/errors";
 import { invalidFormState } from "@/lib/validation/errors";
 import {
   campaignCanStart,
   campaignStatusActionSchema,
+  campaignStatusChange,
   parseCampaignForm,
 } from "@/lib/validation/campaigns";
 
@@ -150,20 +150,6 @@ export async function deleteCampaign(
   redirect("/campaigns?notice=campaign-deleted");
 }
 
-const nextStatus: Record<z.infer<typeof campaignStatusActionSchema>, CampaignStatus> = {
-  start: "active",
-  pause: "paused",
-  resume: "active",
-  complete: "completed",
-};
-
-const allowedFrom: Record<z.infer<typeof campaignStatusActionSchema>, CampaignStatus[]> = {
-  start: ["draft"],
-  pause: ["active"],
-  resume: ["paused"],
-  complete: ["draft", "active", "paused"],
-};
-
 export async function setCampaignStatus(
   id: string,
   _state: ActionState,
@@ -183,12 +169,11 @@ export async function setCampaignStatus(
     .eq("owner_id", userId)
     .maybeSingle();
 
-  if (loadError) return { error: "Could not update the campaign status." };
+  if (loadError) return { error: "Could not load this campaign." };
   if (!campaign) return { error: "Campaign not found." };
 
-  if (!allowedFrom[intent.data].includes(campaign.status)) {
-    return { error: "That status change is not available." };
-  }
+  const nextStatus = campaignStatusChange(intent.data, campaign.status);
+  if (!nextStatus) return { error: "That status change is not available." };
 
   if (intent.data === "start") {
     const blocker = campaignCanStart({
@@ -202,7 +187,7 @@ export async function setCampaignStatus(
 
   const { data, error } = await supabase
     .from("campaigns")
-    .update({ status: nextStatus[intent.data] })
+    .update({ status: nextStatus })
     .eq("id", campaignId.data)
     .eq("owner_id", userId)
     .eq("status", campaign.status)

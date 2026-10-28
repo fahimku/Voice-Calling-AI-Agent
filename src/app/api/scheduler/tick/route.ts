@@ -3,6 +3,7 @@ import { connection } from "next/server";
 
 import { executeActiveTicks } from "@/lib/scheduler/execute";
 import { secretsMatch, takeTickSlot } from "@/lib/scheduler/secret";
+import { syncAllConnected } from "@/lib/sheets/run";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function POST(request: Request) {
@@ -22,8 +23,15 @@ export async function POST(request: Request) {
   }
 
   try {
-    const campaigns = await executeActiveTicks(createAdminClient(), DateTime.utc());
-    return Response.json({ campaigns });
+    const admin = createAdminClient();
+    const campaigns = await executeActiveTicks(admin, DateTime.utc());
+    let sheetSync: Array<{ campaignId: string; ok: boolean; error?: string }> = [];
+    try {
+      sheetSync = await syncAllConnected(admin);
+    } catch {
+      sheetSync = [];
+    }
+    return Response.json({ campaigns, sheetSync });
   } catch {
     return Response.json({ error: "Could not run the scheduler." }, { status: 500 });
   }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { maskPhone, normalizePhone } from "@/lib/phone/normalize";
+import { maskPhone, normalizePhone, sheetCellText } from "@/lib/phone/normalize";
 
 describe("normalizePhone", () => {
   it("converts a UAE local mobile number to E.164", () => {
@@ -30,6 +30,18 @@ describe("normalizePhone", () => {
 
   it("rejects letters", () => {
     expect(normalizePhone("05012abc67")).toEqual({ ok: false, reason: "invalid" });
+  });
+
+  it("accepts a sheet number that already includes a country code", () => {
+    expect(normalizePhone("971501234567")).toEqual({ ok: true, e164: "+971501234567" });
+    expect(normalizePhone("923001234567")).toEqual({ ok: true, e164: "+923001234567" });
+    expect(normalizePhone("9.71501234567E+11")).toEqual({ ok: true, e164: "+971501234567" });
+    expect(normalizePhone("971,501,234,567")).toEqual({ ok: true, e164: "+971501234567" });
+  });
+
+  it("still rejects a number that is not valid with a plus prefix", () => {
+    expect(normalizePhone("12345")).toEqual({ ok: false, reason: "invalid" });
+    expect(sheetCellText(971501234567)).toBe("971501234567");
   });
 });
 

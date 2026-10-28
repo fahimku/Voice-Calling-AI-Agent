@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { CampaignSectionNav } from "@/components/campaigns/campaign-section-nav";
 import { SchedulerCard } from "@/components/campaigns/scheduler-card";
+import { SheetCard } from "@/components/campaigns/sheet-card";
 import { TestCallCard } from "@/components/campaigns/test-call-card";
 import { DeleteCampaignButton } from "@/components/campaigns/delete-campaign-button";
 import { StatusActions } from "@/components/campaigns/status-actions";
@@ -15,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getTestCallSection } from "@/lib/calls";
 import { getCampaign } from "@/lib/campaigns";
 import { formatActiveDays, formatCreated, formatWindow } from "@/lib/format";
+import { getSheetSettings } from "@/lib/sheets/settings";
 import { getSchedulerSnapshot } from "@/lib/scheduler/snapshot";
 import { voiceProviderMode } from "@/lib/providers/mode";
 import { campaignCanStart } from "@/lib/validation/campaigns";
@@ -45,7 +47,11 @@ async function CampaignDetailContent({
 
   const campaign = await getCampaign(id);
   if (!campaign) notFound();
-  const [testCalls, snapshot] = await Promise.all([getTestCallSection(id), getSchedulerSnapshot(campaign)]);
+  const [testCalls, snapshot, sheet] = await Promise.all([
+    getTestCallSection(id),
+    getSchedulerSnapshot(campaign),
+    getSheetSettings(id),
+  ]);
   const mockMode = voiceProviderMode() === "mock";
 
   const startBlocker = campaignCanStart({
@@ -120,6 +126,7 @@ async function CampaignDetailContent({
           </CardContent>
         </Card>
       </div>
+      {sheet ? <SheetCard campaignId={campaign.id} active={campaign.status === "active"} settings={sheet} /> : null}
       {testCalls.ok ? (
         <TestCallCard
           campaignId={campaign.id}

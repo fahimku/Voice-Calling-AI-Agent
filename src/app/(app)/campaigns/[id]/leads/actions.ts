@@ -2,13 +2,15 @@
 
 import { revalidatePath } from "next/cache";
 
-import { friendlyDbError } from "@/lib/db-error";
+import { friendlyDbError, isMissingColumn, migrationRequiredMessage } from "@/lib/db-error";
 import { findPhoneMatches, getOwnedCampaign } from "@/lib/leads";
+import { leadInsertRow } from "@/lib/leads/insert-row";
 import { cleanLeadName, previewImport, type MappedLeadRow } from "@/lib/leads/preview";
 import { normalizePhone } from "@/lib/phone/normalize";
 import type { ActionState } from "@/lib/validation/errors";
 import { invalidFormState } from "@/lib/validation/errors";
 import { leadImportSchema, parseSingleLead, phoneMatchSchema } from "@/lib/validation/leads";
+import { shouldPauseForNewLeads } from "@/lib/validation/campaigns";
 
 const insertChunkSize = 500;
 
@@ -16,11 +18,28 @@ export type LeadActionState = ActionState & {
   ok?: boolean;
   inserted?: number;
   skipped?: number;
+  reopened?: boolean;
 };
 
 function revalidateLeads(campaignId: string) {
+  revalidatePath("/campaigns");
   revalidatePath(`/campaigns/${campaignId}`);
   revalidatePath(`/campaigns/${campaignId}/leads`);
+}
+
+async function pauseIfCompleted(
+  owned: NonNullable<Awaited<ReturnType<typeof getOwnedCampaign>>>,
+  inserted: number,
+) {
+  if (!shouldPauseForNewLeads(owned.campaign.status, inserted)) return false;
+  const paused = await owned.supabase
+    .from("campaigns")
+    .update({ status: "paused" })
+    .eq("id", owned.campaign.id)
+    .eq("owner_id", owned.userId)
+    .eq("status", "completed")
+    .select("id");
+  return Boolean(paused.data?.length);
 }
 
 export async function matchImportPhones(
@@ -48,8 +67,14 @@ export async function importLeads(
   const owned = await getOwnedCampaign(parsed.data.campaignId);
   if (!owned) return { error: "This campaign was not found." };
 
+  const sheetRows = new Map<string, number>();
+  for (const row of parsed.data.rows) {
+    if (!row.sheetRow) continue;
+    const phone = normalizePhone(row.phone);
+    if (phone.ok) sheetRows.set(phone.e164, row.sheetRow);
+  }
   const mapped: MappedLeadRow[] = parsed.data.rows.map((row, index) => ({
-    rowNumber: index + 2,
+    rowNumber: row.sheetRow ?? index + 2,
     rawName: row.name,
     rawPhone: row.phone,
     extra: row.extra,
@@ -67,13 +92,9 @@ export async function importLeads(
 
   let inserted = 0;
   for (let index = 0; index < preview.insertable.length; index += insertChunkSize) {
-    const chunk = preview.insertable.slice(index, index + insertChunkSize).map((row) => ({
-      campaign_id: owned.campaign.id,
-      name: row.name,
-      phone_e164: row.phone,
-      extra: row.extra,
-      status: "pending" as const,
-    }));
+    const chunk = preview.insertable.slice(index, index + insertChunkSize).map((row) =>
+      leadInsertRow(owned.campaign.id, { ...row, sheetRow: sheetRows.get(row.phone) }),
+    );
     const { data, error } = await owned.supabase
       .from("leads")
       .upsert(chunk, {
@@ -83,15 +104,18 @@ export async function importLeads(
       })
       .select("id");
 
+    if (error && isMissingColumn(error)) return { error: migrationRequiredMessage };
     if (error) return { error: friendlyDbError(error, "Could not import leads.") };
     inserted += data?.length ?? 0;
   }
 
+  const reopened = await pauseIfCompleted(owned, inserted);
   revalidateLeads(owned.campaign.id);
   return {
     ok: true,
     inserted,
     skipped: parsed.data.rows.length - inserted,
+    reopened,
   };
 }
 
@@ -132,8 +156,9 @@ export async function addLead(
   if (error?.code === "23505") return { error: "This number is already in the campaign." };
   if (error) return { error: friendlyDbError(error, "Could not add the lead.") };
 
+  const reopened = await pauseIfCompleted(owned, 1);
   revalidateLeads(owned.campaign.id);
-  return { ok: true };
+  return { ok: true, reopened };
 }
 
 export async function deleteLead(

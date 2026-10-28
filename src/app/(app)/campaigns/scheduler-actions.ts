@@ -5,6 +5,7 @@ import { DateTime } from "luxon";
 import { z } from "zod";
 
 import { requireUser } from "@/lib/auth";
+import { ownedCampaignError } from "@/lib/validation/campaigns";
 import { executeCampaignTick } from "@/lib/scheduler/execute";
 
 export async function runSchedulerNow(campaignId: string) {
@@ -18,7 +19,8 @@ export async function runSchedulerNow(campaignId: string) {
     .eq("id", parsed.data)
     .eq("owner_id", userId)
     .maybeSingle();
-  if (owned.error || !owned.data) return { error: "Campaign not found." };
+  if (owned.error) return { error: ownedCampaignError({ queryFailed: true, found: false }) ?? "Could not load this campaign." };
+  if (!owned.data) return { error: "Campaign not found." };
 
   const result = await executeCampaignTick(supabase, parsed.data, DateTime.utc());
   revalidatePath(`/campaigns/${parsed.data}`);

@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { DateTime } from "luxon";
 
 import { applyCallResult } from "@/lib/calls/applyCallResult";
+import { updateLeadPreservingSync } from "@/lib/leads/dirty";
 import { isMissingColumn, migrationRequiredMessage } from "@/lib/db-error";
 import { callPromptVariables } from "@/lib/providers/variables";
 import { getVoiceProvider } from "@/lib/providers";
@@ -50,7 +51,10 @@ export async function executeCampaignTick(
   if (migrationError(loaded.error)) {
     return { campaignId, usedToday: 0, limit: 0, started: 0, skippedReason: migrationRequiredMessage };
   }
-  if (loaded.error || !loaded.data) {
+  if (loaded.error) {
+    return { campaignId, usedToday: 0, limit: 0, started: 0, skippedReason: "Could not load this campaign." };
+  }
+  if (!loaded.data) {
     return { campaignId, usedToday: 0, limit: 0, started: 0, skippedReason: "Campaign not found." };
   }
 
@@ -237,14 +241,15 @@ async function reconcileCampaign(
   const busy = new Set(calls.data.map((call) => call.lead_id).filter(Boolean));
   for (const lead of orphans.data) {
     if (busy.has(lead.id)) continue;
-    await supabase
-      .from("leads")
-      .update({
+    await updateLeadPreservingSync(
+      supabase,
+      String(lead.id),
+      {
         status: "failed",
         next_attempt_at: retryAtIso(Number(lead.attempts), campaign.maxAttempts, campaign.retryDelayMinutes, now),
-      })
-      .eq("id", lead.id)
-      .eq("status", "calling");
+      },
+      "calling",
+    );
   }
 }
 
@@ -266,15 +271,16 @@ async function markStartFailed(
     ended_reason: "The call could not be started.",
     outcome: "failed",
   });
-  await supabase
-    .from("leads")
-    .update({
+  await updateLeadPreservingSync(
+    supabase,
+    leadId,
+    {
       status: "failed",
       next_attempt_at: retryAtIso(attempts, campaign.maxAttempts, campaign.retryDelayMinutes, now),
       summary: "The call could not be started.",
-    })
-    .eq("id", leadId)
-    .eq("status", "calling");
+    },
+    "calling",
+  );
 }
 
 async function usedTodayCount(supabase: SupabaseClient, campaignId: string) {

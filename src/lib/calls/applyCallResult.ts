@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { DateTime } from "luxon";
 
+import { updateLeadPreservingSync } from "@/lib/leads/dirty";
 import { retryAtIso } from "@/lib/scheduler/leads";
 
 const interestLevels = new Set(["high", "medium", "low", "none"]);
@@ -235,16 +236,13 @@ export async function applyCallResult(
   if (!plan.applied || !plan.call) return { applied: false as const };
 
   if (plan.lead && lead) {
-    const leadUpdate = await supabase
-      .from("leads")
-      .update({
-        status: plan.lead.status,
-        interest_level: plan.lead.interestLevel,
-        callback_at: plan.lead.callbackAt,
-        next_attempt_at: plan.lead.nextAttemptAt,
-        summary: plan.lead.summary,
-      })
-      .eq("id", lead.id);
+    const leadUpdate = await updateLeadPreservingSync(supabase, lead.id, {
+      status: plan.lead.status,
+      interest_level: plan.lead.interestLevel,
+      callback_at: plan.lead.callbackAt,
+      next_attempt_at: plan.lead.nextAttemptAt,
+      summary: plan.lead.summary,
+    });
     if (leadUpdate.error) return { applied: false as const };
   }
 

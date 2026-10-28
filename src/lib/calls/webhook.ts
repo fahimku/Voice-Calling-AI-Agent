@@ -40,6 +40,7 @@ export async function handleVapiWebhook(input: {
   nowMs?: number;
   supabase: SupabaseClient;
   now?: DateTime;
+  onApplied?: (info: { campaignId: string }) => void;
 }) {
   if (!takeWebhookSlot(input.nowMs ?? Date.now())) {
     return Response.json({ error: "Too many webhook requests." }, { status: 429 });
@@ -60,7 +61,7 @@ export async function handleVapiWebhook(input: {
 
   const found = await input.supabase
     .from("calls")
-    .select("id")
+    .select("id, campaign_id")
     .eq("provider_call_id", report.providerCallId)
     .order("created_at", { ascending: false })
     .limit(1)
@@ -71,6 +72,14 @@ export async function handleVapiWebhook(input: {
     return Response.json({ ok: true, unknown: true });
   }
 
-  await applyCallResult(input.supabase, String(found.data.id), report.result, input.now ?? DateTime.utc());
+  const applied = await applyCallResult(
+    input.supabase,
+    String(found.data.id),
+    report.result,
+    input.now ?? DateTime.utc(),
+  );
+  if (applied.applied && found.data.campaign_id) {
+    input.onApplied?.({ campaignId: String(found.data.campaign_id) });
+  }
   return Response.json({ ok: true });
 }

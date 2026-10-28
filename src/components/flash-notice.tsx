@@ -14,6 +14,7 @@ const notices: Record<string, string> = {
   "campaign-pause": "Campaign paused.",
   "campaign-resume": "Campaign resumed.",
   "campaign-complete": "Campaign marked completed.",
+  "campaign-reopen": "Campaign reopened and paused.",
 };
 
 export function FlashNotice({ notice }: { notice?: string }) {

@@ -81,4 +81,26 @@ describe("previewImport", () => {
     const preview = previewImport(mapped, new Set(), new Set());
     expect(preview.insertable[0]?.name).toBeNull();
   });
+
+  it("accepts a numeric sheet phone and keeps the invalid reason on the row", () => {
+    const mapped = mapLeadRows(
+      ["Name", "Phone"],
+      [
+        ["Sara", "923001234567"],
+        ["Bad", "12345"],
+      ],
+      0,
+      1,
+    );
+    const preview = previewImport(mapped, new Set(), new Set());
+    expect(preview.rows[0]).toMatchObject({
+      status: "valid",
+      phone: "+923001234567",
+      reason: null,
+    });
+    expect(preview.rows[1]).toMatchObject({
+      status: "invalid",
+      reason: "Phone number is not a valid number.",
+    });
+  });
 });

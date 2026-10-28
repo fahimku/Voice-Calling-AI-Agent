@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { AddLeadForm } from "@/components/leads/add-lead-form";
 import { ImportDialog } from "@/components/leads/import-dialog";
+import { SheetImportButton } from "@/components/leads/sheet-import-button";
 import { LeadsTable } from "@/components/leads/leads-table";
 import { CampaignSectionNav } from "@/components/campaigns/campaign-section-nav";
 import { StatusBadge } from "@/components/campaigns/status-badge";
@@ -111,6 +112,7 @@ async function CampaignLeadsContent({
         </form>
         <div className="flex flex-wrap gap-2">
           <ImportDialog campaignId={campaign.id} active={campaign.status === "active"} />
+          <SheetImportButton campaignId={campaign.id} active={campaign.status === "active"} />
           <a href={`/api/campaigns/${campaign.id}/leads/export`} className={buttonVariants({ variant: "outline" })}>
             Export CSV
           </a>
@@ -121,7 +123,7 @@ async function CampaignLeadsContent({
         <div className="rounded-xl border border-dashed px-6 py-12 text-center">
           <h2 className="text-base font-medium">No leads yet</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Import a CSV or Excel file, or add one number.
+            Import a CSV, Excel file, or Google Sheet, or add one number.
           </p>
           <a
             href={`data:text/csv;charset=utf-8,${encodeURIComponent(SAMPLE_LEADS_CSV)}`}
@@ -137,6 +139,7 @@ async function CampaignLeadsContent({
         <LeadsTable
           campaignId={campaign.id}
           leads={leads}
+          sheetConnected={Boolean(campaign.sheetId)}
           createdSort={
             <Link
               href={leadsHref(campaign.id, query, {

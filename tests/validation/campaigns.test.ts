@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { campaignCanStart, campaignSchema } from "@/lib/validation/campaigns";
+import { campaignCanStart, campaignSchema, campaignStatusChange, ownedCampaignError, sheetActionsAllowed, shouldPauseForNewLeads } from "@/lib/validation/campaigns";
 
 const validCampaign = {
   name: "Morning outreach",
@@ -116,5 +116,25 @@ describe("campaignCanStart", () => {
         windowEnd: "18:00",
       }),
     ).toMatch(/daily limit/i);
+  });
+});
+
+describe("campaign status changes", () => {
+  it("reopens a completed campaign to paused and leaves other statuses alone", () => {
+    expect(campaignStatusChange("reopen", "completed")).toBe("paused");
+    expect(campaignStatusChange("reopen", "active")).toBeNull();
+    expect(campaignStatusChange("start", "completed")).toBeNull();
+    expect(shouldPauseForNewLeads("completed", 3)).toBe(true);
+    expect(shouldPauseForNewLeads("completed", 0)).toBe(false);
+    expect(shouldPauseForNewLeads("active", 3)).toBe(false);
+  });
+
+  it("lets sheet actions run for every status and does not call a load failure a missing campaign", () => {
+    for (const status of ["draft", "active", "paused", "completed"]) {
+      expect(sheetActionsAllowed(status)).toBe(true);
+      expect(ownedCampaignError({ queryFailed: false, found: true })).toBeNull();
+    }
+    expect(ownedCampaignError({ queryFailed: true, found: true })).toBe("Could not load this campaign.");
+    expect(ownedCampaignError({ queryFailed: false, found: false })).toBe("Campaign not found.");
   });
 });

@@ -5,6 +5,7 @@ import { toast } from "sonner";
 
 import type { ActionState } from "@/lib/validation/errors";
 import { businessTypeLabels, businessTypes } from "@/lib/validation/agents";
+import { VariableFields, type VariableRow } from "@/components/agents/variable-fields";
 import { Field } from "@/components/field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +27,9 @@ type AgentFormProps = {
     providerAssistantId: string;
     providerPhoneNumberId: string;
     notes: string;
+    agentDisplayName: string;
+    businessName: string;
+    variables: VariableRow[];
   };
 };
 
@@ -43,6 +47,8 @@ export function AgentForm({ action, submitLabel, values }: AgentFormProps) {
   const [assistantId, setAssistantId] = useState(values?.providerAssistantId ?? "");
   const [phoneId, setPhoneId] = useState(values?.providerPhoneNumberId ?? "");
   const [notes, setNotes] = useState(values?.notes ?? "");
+  const [agentDisplayName, setAgentDisplayName] = useState(values?.agentDisplayName ?? "");
+  const [businessName, setBusinessName] = useState(values?.businessName ?? "");
 
   useEffect(() => {
     if (state.error) toast.error(state.error, { id: state.error });
@@ -104,10 +110,38 @@ export function AgentForm({ action, submitLabel, values }: AgentFormProps) {
           name="providerPhoneNumberId"
           value={phoneId}
           onChange={(event) => setPhoneId(event.target.value)}
-          placeholder="Optional for now"
+          placeholder="Required for live calls"
           className="h-10"
         />
       </Field>
+      <Field
+        label="Spoken name"
+        htmlFor="agentDisplayName"
+        error={state.fieldErrors?.agentDisplayName}
+      >
+        <Input
+          id="agentDisplayName"
+          name="agentDisplayName"
+          value={agentDisplayName}
+          onChange={(event) => setAgentDisplayName(event.target.value)}
+          placeholder="Sara"
+          className="h-10"
+        />
+      </Field>
+      <p className="-mt-2 text-sm text-muted-foreground">The name the AI says on the call.</p>
+      <Field label="Business name" htmlFor="businessName" error={state.fieldErrors?.businessName}>
+        <Input
+          id="businessName"
+          name="businessName"
+          value={businessName}
+          onChange={(event) => setBusinessName(event.target.value)}
+          className="h-10"
+        />
+      </Field>
+      <VariableFields initialRows={values?.variables ?? []} />
+      {state.fieldErrors?.variables ? (
+        <p className="text-sm text-destructive">{state.fieldErrors.variables}</p>
+      ) : null}
       <Field label="Notes" htmlFor="notes" error={state.fieldErrors?.notes}>
         <Textarea
           id="notes"

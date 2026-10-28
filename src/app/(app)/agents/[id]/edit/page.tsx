@@ -7,6 +7,7 @@ import { AgentForm } from "@/components/agents/agent-form";
 import { DeleteAgentButton } from "@/components/agents/delete-agent-button";
 import { DeferredPage } from "@/components/deferred-page";
 import { getAgent } from "@/lib/agents";
+import { variableEntries } from "@/lib/validation/agents";
 
 export default function EditAgentPage({
   params,
@@ -51,6 +52,9 @@ async function EditAgentContent({
           providerAssistantId: agent.provider_assistant_id,
           providerPhoneNumberId: agent.provider_phone_number_id ?? "",
           notes: agent.notes ?? "",
+          agentDisplayName: agent.agent_display_name ?? "",
+          businessName: agent.business_name ?? "",
+          variables: variableEntries(agent.variables),
         }}
       />
     </div>

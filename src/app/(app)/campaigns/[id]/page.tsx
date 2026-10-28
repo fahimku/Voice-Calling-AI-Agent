@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { z } from "zod";
 
 import { CampaignSectionNav } from "@/components/campaigns/campaign-section-nav";
+import { TestCallCard } from "@/components/campaigns/test-call-card";
 import { DeleteCampaignButton } from "@/components/campaigns/delete-campaign-button";
 import { StatusActions } from "@/components/campaigns/status-actions";
 import { StatusBadge } from "@/components/campaigns/status-badge";
@@ -10,6 +11,7 @@ import { DeferredPage } from "@/components/deferred-page";
 import { FlashNotice } from "@/components/flash-notice";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getTestCallSection } from "@/lib/calls";
 import { getCampaign } from "@/lib/campaigns";
 import {
   formatActiveDays,
@@ -17,6 +19,7 @@ import {
   formatTimeInput,
   formatWindow,
 } from "@/lib/format";
+import { voiceProviderMode } from "@/lib/providers/mode";
 import { campaignCanStart } from "@/lib/validation/campaigns";
 
 export default function CampaignDetailPage({
@@ -43,8 +46,9 @@ async function CampaignDetailContent({
   const [{ id }, { notice }] = await Promise.all([params, searchParams]);
   if (!z.uuid().safeParse(id).success) notFound();
 
-  const campaign = await getCampaign(id);
+  const [campaign, testCalls] = await Promise.all([getCampaign(id), getTestCallSection(id)]);
   if (!campaign) notFound();
+  const mockMode = voiceProviderMode() === "mock";
 
   const startBlocker = campaignCanStart({
     agentId: campaign.agent_id,
@@ -128,6 +132,16 @@ async function CampaignDetailContent({
           </CardContent>
         </Card>
       </div>
+      {testCalls.ok ? (
+        <TestCallCard
+          campaignId={campaign.id}
+          mockMode={mockMode}
+          needsPhoneNumber={!mockMode && !testCalls.agent.providerPhoneNumberId}
+          calls={testCalls.calls}
+        />
+      ) : (
+        <p className="rounded-lg border px-3 py-2 text-sm text-muted-foreground">{testCalls.message}</p>
+      )}
     </div>
   );
 }

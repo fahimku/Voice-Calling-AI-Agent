@@ -5,14 +5,35 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { requireUser } from "@/lib/auth";
-import { friendlyDbError } from "@/lib/db-error";
+import { friendlyDbError, isMissingColumn, migrationRequiredMessage } from "@/lib/db-error";
+import type { AgentInput } from "@/lib/validation/agents";
+import { parseAgentForm, variablesRecord } from "@/lib/validation/agents";
 import type { ActionState } from "@/lib/validation/errors";
 import { invalidFormState } from "@/lib/validation/errors";
-import { parseAgentForm } from "@/lib/validation/agents";
 
 function revalidateAgents() {
   revalidatePath("/agents");
   revalidatePath("/campaigns");
+}
+
+function agentFields(data: AgentInput) {
+  const phone = data.providerPhoneNumberId;
+  const notes = data.notes;
+  return {
+    name: data.name,
+    business_type: data.businessType,
+    provider_assistant_id: data.providerAssistantId,
+    provider_phone_number_id: phone.length > 0 ? phone : null,
+    notes: notes.length > 0 ? notes : null,
+    agent_display_name: data.agentDisplayName.length > 0 ? data.agentDisplayName : null,
+    business_name: data.businessName.length > 0 ? data.businessName : null,
+    variables: variablesRecord(data.variables),
+  };
+}
+
+function agentWriteError(error: { code?: string } | null, fallback: string) {
+  if (isMissingColumn(error)) return migrationRequiredMessage;
+  return friendlyDbError(error, fallback);
 }
 
 export async function createAgent(
@@ -23,20 +44,14 @@ export async function createAgent(
   if (!parsed.success) return invalidFormState(parsed.error);
 
   const { supabase, userId } = await requireUser();
-  const phone = parsed.data.providerPhoneNumberId;
-  const notes = parsed.data.notes;
   const { error } = await supabase.from("agents").insert({
     owner_id: userId,
-    name: parsed.data.name,
-    business_type: parsed.data.businessType,
     provider: "vapi",
-    provider_assistant_id: parsed.data.providerAssistantId,
-    provider_phone_number_id: phone.length > 0 ? phone : null,
-    notes: notes.length > 0 ? notes : null,
+    ...agentFields(parsed.data),
   });
 
   if (error) {
-    return { error: friendlyDbError(error, "Could not create the agent.") };
+    return { error: agentWriteError(error, "Could not create the agent.") };
   }
 
   revalidateAgents();
@@ -55,24 +70,16 @@ export async function updateAgent(
   if (!parsed.success) return invalidFormState(parsed.error);
 
   const { supabase, userId } = await requireUser();
-  const phone = parsed.data.providerPhoneNumberId;
-  const notes = parsed.data.notes;
   const { data, error } = await supabase
     .from("agents")
-    .update({
-      name: parsed.data.name,
-      business_type: parsed.data.businessType,
-      provider_assistant_id: parsed.data.providerAssistantId,
-      provider_phone_number_id: phone.length > 0 ? phone : null,
-      notes: notes.length > 0 ? notes : null,
-    })
+    .update(agentFields(parsed.data))
     .eq("id", agentId.data)
     .eq("owner_id", userId)
     .select("id")
     .maybeSingle();
 
   if (error) {
-    return { error: friendlyDbError(error, "Could not update the agent.") };
+    return { error: agentWriteError(error, "Could not update the agent.") };
   }
   if (!data) return { error: "Agent not found." };
 

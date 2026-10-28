@@ -3,6 +3,13 @@ type DbError = {
   message?: string;
 } | null;
 
+export const migrationRequiredMessage =
+  "The latest database migration is not applied yet. Run supabase db push, then try again.";
+
+export function isMissingColumn(error: DbError) {
+  return error?.code === "42703" || error?.code === "PGRST204";
+}
+
 export function friendlyDbError(error: DbError, fallback: string) {
   if (error?.code === "23502") {
     return "A required field is missing. If you left the phone number ID blank, run supabase db push to apply the latest migration.";

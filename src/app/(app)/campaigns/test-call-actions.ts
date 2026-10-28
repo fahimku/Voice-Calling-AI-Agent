@@ -11,7 +11,7 @@ import { normalizePhone } from "@/lib/phone/normalize";
 import { getVoiceProvider } from "@/lib/providers";
 import { voiceProviderMode } from "@/lib/providers/mode";
 import type { ProviderCall } from "@/lib/providers/types";
-import type { CampaignCallAgent } from "@/lib/calls";
+import { callPromptVariables } from "@/lib/providers/variables";
 import { parseTestCallForm } from "@/lib/validation/calls";
 import type { ActionState } from "@/lib/validation/errors";
 import { invalidFormState } from "@/lib/validation/errors";
@@ -20,17 +20,6 @@ export type TestCallState = ActionState & { ok?: boolean };
 
 const phoneError =
   "Enter a valid phone number. Use a local UAE number, or include + and the country code.";
-
-function promptVariables(agent: CampaignCallAgent, customerName: string) {
-  const variables: Record<string, string> = {};
-  for (const [key, value] of Object.entries(agent.variables)) {
-    if (/^[A-Za-z][A-Za-z0-9_]*$/.test(key)) variables[key] = value;
-  }
-  variables.agent_name = agent.agentDisplayName?.trim() ?? "";
-  variables.business_name = agent.businessName?.trim() ?? "";
-  variables.customer_name = customerName;
-  return variables;
-}
 
 function safeProviderMessage(error: unknown, phone: string, fallback: string) {
   if (error instanceof Error && error.message && !error.message.includes(phone)) {
@@ -96,7 +85,12 @@ export async function placeTestCall(campaignId: string, formData: FormData): Pro
       customerName: customerName || undefined,
       assistantId: owned.agent.providerAssistantId,
       phoneNumberId: owned.agent.providerPhoneNumberId ?? "",
-      variables: promptVariables(owned.agent, customerName),
+      variables: callPromptVariables({
+        agentVariables: owned.agent.variables,
+        agentName: owned.agent.agentDisplayName,
+        businessName: owned.agent.businessName,
+        customerName,
+      }),
     });
     providerCallId = started.providerCallId;
   } catch (error) {

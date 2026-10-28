@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest run"
+    "test": "vitest run",
+    "tick": "node scripts/tick.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

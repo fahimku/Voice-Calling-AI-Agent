@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { getSupabasePublicEnv } from "@/lib/env";
 
-const PUBLIC_PATHS = new Set(["/login", "/signup"]);
+const PUBLIC_PATHS = new Set(["/login", "/signup", "/api/scheduler/tick"]);
 
 export async function updateSession(request: NextRequest) {
   const path = request.nextUrl.pathname;
@@ -54,7 +54,7 @@ export async function updateSession(request: NextRequest) {
     return withSession(NextResponse.redirect(loginUrl), supabaseResponse);
   }
 
-  if (isAuthenticated && isPublic) {
+  if (isAuthenticated && isPublic && !path.startsWith("/api/")) {
     const dashboardUrl = request.nextUrl.clone();
     dashboardUrl.pathname = "/dashboard";
     dashboardUrl.search = "";

@@ -103,6 +103,55 @@ export async function countRecentTestCalls(sinceIso: string) {
   return { error: calls.error, count: calls.count ?? 0 };
 }
 
+export type CampaignCallItem = {
+  id: string;
+  status: string;
+  outcome: string | null;
+  attemptNumber: number | null;
+  startedAt: string | null;
+  maskedPhone: string;
+};
+
+export async function listCampaignCalls(campaignId: string) {
+  const { supabase, userId } = await requireUser();
+  const owned = await supabase
+    .from("campaigns")
+    .select("id")
+    .eq("id", campaignId)
+    .eq("owner_id", userId)
+    .maybeSingle();
+  if (owned.error || !owned.data) return { ok: false as const, message: "Campaign not found." };
+
+  const calls = await supabase
+    .from("calls")
+    .select("id, status, outcome, attempt_number, started_at, leads ( phone_e164 )")
+    .eq("campaign_id", campaignId)
+    .eq("is_test", false)
+    .order("created_at", { ascending: false })
+    .limit(100);
+
+  if (calls.error && isMissingColumn(calls.error)) {
+    return { ok: false as const, message: migrationRequiredMessage };
+  }
+  if (calls.error) return { ok: false as const, message: "Could not load calls." };
+
+  return {
+    ok: true as const,
+    calls: (calls.data ?? []).map((row) => {
+      const lead = oneRow(row.leads);
+      const phone = lead && typeof lead.phone_e164 === "string" ? lead.phone_e164 : "";
+      return {
+        id: String(row.id),
+        status: String(row.status),
+        outcome: typeof row.outcome === "string" ? row.outcome : null,
+        attemptNumber: typeof row.attempt_number === "number" ? row.attempt_number : null,
+        startedAt: typeof row.started_at === "string" ? row.started_at : null,
+        maskedPhone: phone ? maskPhone(phone) : "—",
+      } satisfies CampaignCallItem;
+    }),
+  };
+}
+
 export async function getTestCallSection(campaignId: string): Promise<TestCallSection> {
   const owned = await getOwnedCampaignAgent(campaignId);
   if (owned.missingMigration) return { ok: false, message: migrationRequiredMessage };

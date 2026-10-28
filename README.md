@@ -51,6 +51,8 @@ Phase 3 uses the `leads` and `dnc_numbers` tables from the initial migration. Th
 
 Phase 4 adds `supabase/migrations/20261027120000_agent_variables_and_test_calls.sql`. Run `supabase db push` before saving spoken names, prompt variables, or test calls. On a campaign, use Test call. With `VOICE_PROVIDER_MODE=mock`, refresh the row after a few seconds to see a simulated result.
 
+Phase 5 adds `supabase/migrations/20261028010000_scheduler_claim_leads.sql`. Run `supabase db push` before using the scheduler. Set `CRON_SECRET` in `.env.local`, keep `VOICE_PROVIDER_MODE=mock`, then start the app and run `npm run tick`. A campaign page also has Run scheduler now. The daily limit resets at local midnight.
+
 5. Start the app:
 
 ```bash
@@ -64,4 +66,5 @@ Open http://localhost:3000. You will be asked to log in. After login you should 
 - `npm run dev` starts the local server
 - `npm run lint` runs ESLint
 - `npm run build` creates a production build
-- `npm test` runs Vitest, including the agent and campaign validation schemas
+- `npm test` runs Vitest, including the scheduler
+- `npm run tick` posts to the local scheduler using `CRON_SECRET` from `.env.local`

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { z } from "zod";
 
 import { CampaignSectionNav } from "@/components/campaigns/campaign-section-nav";
+import { SchedulerCard } from "@/components/campaigns/scheduler-card";
 import { TestCallCard } from "@/components/campaigns/test-call-card";
 import { DeleteCampaignButton } from "@/components/campaigns/delete-campaign-button";
 import { StatusActions } from "@/components/campaigns/status-actions";
@@ -13,12 +14,8 @@ import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getTestCallSection } from "@/lib/calls";
 import { getCampaign } from "@/lib/campaigns";
-import {
-  formatActiveDays,
-  formatCreated,
-  formatTimeInput,
-  formatWindow,
-} from "@/lib/format";
+import { formatActiveDays, formatCreated, formatWindow } from "@/lib/format";
+import { getSchedulerSnapshot } from "@/lib/scheduler/snapshot";
 import { voiceProviderMode } from "@/lib/providers/mode";
 import { campaignCanStart } from "@/lib/validation/campaigns";
 
@@ -46,8 +43,9 @@ async function CampaignDetailContent({
   const [{ id }, { notice }] = await Promise.all([params, searchParams]);
   if (!z.uuid().safeParse(id).success) notFound();
 
-  const [campaign, testCalls] = await Promise.all([getCampaign(id), getTestCallSection(id)]);
+  const campaign = await getCampaign(id);
   if (!campaign) notFound();
+  const [testCalls, snapshot] = await Promise.all([getTestCallSection(id), getSchedulerSnapshot(campaign)]);
   const mockMode = voiceProviderMode() === "mock";
 
   const startBlocker = campaignCanStart({
@@ -107,17 +105,7 @@ async function CampaignDetailContent({
         ))}
       </dl>
       <div className="grid gap-4 sm:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Today&apos;s calls used / limit</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Coming in the next phases. The daily limit is {campaign.daily_limit}, from{" "}
-              {formatTimeInput(campaign.window_start)} to {formatTimeInput(campaign.window_end)}.
-            </p>
-          </CardContent>
-        </Card>
+        <SchedulerCard campaignId={campaign.id} snapshot={snapshot} />
         <Card>
           <CardHeader>
             <CardTitle>Leads</CardTitle>

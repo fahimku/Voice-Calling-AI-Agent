@@ -7,7 +7,7 @@ export function CampaignSectionNav({
   current,
 }: {
   campaignId: string;
-  current: "settings" | "leads";
+  current: "settings" | "leads" | "calls";
 }) {
   const item = (href: string, label: string, active: boolean) => (
     <Link
@@ -26,6 +26,7 @@ export function CampaignSectionNav({
     <nav className="flex w-fit gap-1 rounded-xl border p-1">
       {item(`/campaigns/${campaignId}`, "Settings", current === "settings")}
       {item(`/campaigns/${campaignId}/leads`, "Leads", current === "leads")}
+      {item(`/campaigns/${campaignId}/calls`, "Calls", current === "calls")}
     </nav>
   );
 }

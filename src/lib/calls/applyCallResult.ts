@@ -13,6 +13,8 @@ export type CallResultInput = {
   structuredData?: Record<string, unknown> | null;
   outcome?: string | null;
   endedAt?: string | null;
+  recordingRef?: string | null;
+  rawPayload?: unknown;
 };
 
 export type PlannedCallResult = {
@@ -176,6 +178,13 @@ export function planCallResult(input: {
   };
 }
 
+function safeRecordingRef(value: string | null | undefined) {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (!trimmed || /^https?:/i.test(trimmed) || /recording|url/i.test(trimmed)) return null;
+  return trimmed.slice(0, 200);
+}
+
 function oneRow<T>(value: T | T[] | null | undefined): T | null {
   if (Array.isArray(value)) return value[0] ?? null;
   return value ?? null;
@@ -250,6 +259,8 @@ export async function applyCallResult(
       structured_data: plan.call.structuredData,
       outcome: plan.call.outcome,
       ended_at: plan.call.endedAt,
+      ...(safeRecordingRef(result.recordingRef) ? { recording_ref: safeRecordingRef(result.recordingRef) } : {}),
+      ...(result.rawPayload !== undefined ? { raw_payload: result.rawPayload } : {}),
     })
     .eq("id", callId)
     .neq("status", "ended")

@@ -4,7 +4,7 @@ import { planCallResult, type CallResultInput } from "@/lib/calls/applyCallResul
 import { computeBatchSize, countUsedToday } from "@/lib/scheduler/batch";
 import { explainScheduler } from "@/lib/scheduler/explain";
 import { claimCandidates, isLeadStillOpen, retryAtIso, type SchedulerLead } from "@/lib/scheduler/leads";
-import { reconcileAction, stuckCallAfterMs } from "@/lib/scheduler/reconcile";
+import { callAgeMs, reconcileAction, stuckCallAfterMs } from "@/lib/scheduler/reconcile";
 import { isCampaignOpen, type WindowCampaign } from "@/lib/scheduler/window";
 
 export type TickCampaignResult = {
@@ -60,12 +60,28 @@ export async function runTick(
   for (const call of next.calls) {
     const action = reconcileAction(call, input.now, input.mode);
     if (action === "wait") continue;
-    const providerResult =
-      action === "timeout"
-        ? { endedReason: "timeout", outcome: "failed", status: "ended" }
-        : await input.getCall(call.providerCallId);
-    if (action === "poll" && providerResult.status !== "ended" && providerResult.status !== "failed") continue;
-    applyToCall(next, call, providerResult, input.now);
+    const age = callAgeMs(call.startedAt, input.now) ?? 0;
+    if (action === "timeout") {
+      applyToCall(next, call, { endedReason: "timeout", outcome: "failed" }, input.now);
+      continue;
+    }
+    let providerResult: CallResultInput & { status?: string };
+    try {
+      providerResult = await input.getCall(call.providerCallId);
+    } catch {
+      if (age >= stuckCallAfterMs) {
+        applyToCall(next, call, { endedReason: "timeout", outcome: "failed" }, input.now);
+      }
+      continue;
+    }
+    const finished = providerResult.status === "ended" || providerResult.status === "failed";
+    if (!finished && age < stuckCallAfterMs) continue;
+    applyToCall(
+      next,
+      call,
+      finished ? providerResult : { endedReason: "timeout", outcome: "failed" },
+      input.now,
+    );
   }
 
   for (const lead of next.leads) {

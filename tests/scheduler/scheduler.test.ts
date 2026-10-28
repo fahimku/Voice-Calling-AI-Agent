@@ -333,14 +333,49 @@ describe("tick engine", () => {
       startCall: async () => {
         throw new Error("should not start");
       },
-      getCall: async () => {
-        throw new Error("should not poll");
-      },
+      getCall: async () => ({ status: "in_progress" }),
     });
     expect(result.state.calls[0]?.endedReason).toBe("timeout");
     expect(result.state.calls[0]?.status).toBe("ended");
     expect(result.state.leads[0]?.status).toBe("failed");
     expect(result.state.leads[0]?.nextAttemptAt).toBeTruthy();
+  });
+
+  it("polls a live call after five minutes and waits if it is still running", async () => {
+    const started = tuesdayNoon.minus({ minutes: 6 });
+    const current = state([lead({ id: "1", status: "calling", attempts: 1 })]);
+    current.calls.push({
+      id: "call-1",
+      leadId: "1",
+      providerCallId: "live_1",
+      status: "in_progress",
+      isTest: false,
+      attemptNumber: 1,
+      startedAt: started.toUTC().toISO() ?? "",
+      endedReason: null,
+      outcome: null,
+    });
+    const running = await runTick(structuredClone(current), {
+      now: tuesdayNoon,
+      mode: "live",
+      startCall: async () => ({ providerCallId: "unused" }),
+      getCall: async () => ({ status: "in_progress" }),
+    });
+    expect(running.state.calls[0]?.status).toBe("in_progress");
+
+    const finished = await runTick(current, {
+      now: tuesdayNoon,
+      mode: "live",
+      startCall: async () => ({ providerCallId: "unused" }),
+      getCall: async () => ({
+        status: "ended",
+        outcome: "interested",
+        endedReason: "customer-ended-call",
+        structuredData: { interested: true, interest_level: "high" },
+      }),
+    });
+    expect(finished.state.calls[0]?.outcome).toBe("interested");
+    expect(finished.state.leads[0]?.status).toBe("interested");
   });
 });
 

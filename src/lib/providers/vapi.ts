@@ -1,3 +1,4 @@
+import { compactStructuredFields, extractStructuredFields } from "@/lib/calls/structured-output";
 import type {
   ProviderCall,
   ProviderCallOutcome,
@@ -115,7 +116,7 @@ export function mapVapiCall(payload: unknown): ProviderCall {
   const analysis = plainObject(call.analysis);
   const artifact = plainObject(call.artifact);
   const summary = typeof analysis?.summary === "string" ? analysis.summary.slice(0, summaryLimit) : undefined;
-  const structuredData = plainObject(analysis?.structuredData);
+  const structuredData = compactStructuredFields(extractStructuredFields(call));
   const transcript =
     typeof artifact?.transcript === "string" ? artifact.transcript.slice(0, transcriptLimit) : undefined;
   // Get Call has startedAt and endedAt, not a duration field.

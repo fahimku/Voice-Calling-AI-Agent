@@ -30,6 +30,13 @@ export function shortenId(value: string) {
   return `${value.slice(0, 8)}…${value.slice(-4)}`;
 }
 
+export function formatDuration(seconds: number | null) {
+  if (seconds == null || seconds < 0) return "—";
+  const minutes = Math.floor(seconds / 60);
+  const rest = seconds % 60;
+  return `${minutes}:${String(rest).padStart(2, "0")}`;
+}
+
 export function formatWindow(start: string, end: string) {
   return `${start.slice(0, 5)}–${end.slice(0, 5)}`;
 }

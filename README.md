@@ -1,6 +1,6 @@
 # Calling Agent
 
-Portal for outbound AI calling campaigns. This README covers local setup through Phase 4: the app shell, email auth, agents, campaigns, leads, and test calls.
+Portal for outbound AI calling campaigns. This README covers local setup through Phase 6: the app shell, email auth, agents, campaigns, leads, test calls, the scheduler, and call results.
 
 ## Requirements
 
@@ -53,6 +53,34 @@ Phase 4 adds `supabase/migrations/20261027120000_agent_variables_and_test_calls.
 
 Phase 5 adds `supabase/migrations/20261028010000_scheduler_claim_leads.sql`. Run `supabase db push` before using the scheduler. Set `CRON_SECRET` in `.env.local`, keep `VOICE_PROVIDER_MODE=mock`, then start the app and run `npm run tick`. A campaign page also has Run scheduler now. The daily limit resets at local midnight.
 
+Phase 6 receives Vapi end-of-call reports and shows them on Calls. Set `VAPI_WEBHOOK_SECRET` in `.env.local` and restart the app. In mock mode, place a test call, copy its provider call id, then run:
+
+```bash
+npm run simulate:webhook -- <providerCallId> interested
+```
+
+Other outcomes are `not_interested`, `voicemail`, `no_answer`, `callback`, and `dnc`. Sending the same payload again does not change the saved result. Open Calls, then the row, for the summary, transcript, and recording player. Mock mode plays a short generated tone when a recording reference was saved, and shows “No recording for this call” otherwise.
+
+To receive live Vapi events, expose the local app with ngrok or cloudflared (`ngrok http 3000` or `cloudflared tunnel --url http://localhost:3000`). In the Vapi dashboard, open Integrations, then Server Configuration, and add a Bearer Token credential: header name `Authorization`, Include Bearer Prefix on, token equal to `VAPI_WEBHOOK_SECRET`. On the assistant, set the Server URL to `https://<your-tunnel>/api/webhooks/vapi` and select that credential. The older `X-Vapi-Secret` header is also accepted if the credential uses that header name and the Bearer prefix is off. Attach the credential on the saved assistant. A server URL supplied only on the outbound API request does not receive the credential.
+
+Create a structured output named “Call outcome” and attach its id in the assistant `artifactPlan.structuredOutputIds`. Schema:
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "interested": { "type": "boolean" },
+    "interest_level": { "type": "string", "enum": ["high", "medium", "low", "none"] },
+    "callback_requested": { "type": "boolean" },
+    "callback_time": { "type": "string" },
+    "do_not_call": { "type": "boolean" },
+    "notes": { "type": "string" }
+  }
+}
+```
+
+The assistant should say it is an AI and that the call may be recorded, then honour a request not to be called. A usable opening line is: “Hi, this is {agent_name}, an AI assistant calling on behalf of {business_name}. This call may be recorded. Do you have a quick minute?”
+
 5. Start the app:
 
 ```bash
@@ -68,3 +96,4 @@ Open http://localhost:3000. You will be asked to log in. After login you should 
 - `npm run build` creates a production build
 - `npm test` runs Vitest, including the scheduler
 - `npm run tick` posts to the local scheduler using `CRON_SECRET` from `.env.local`
+- `npm run simulate:webhook -- <providerCallId> [outcome]` posts a mock end-of-call report

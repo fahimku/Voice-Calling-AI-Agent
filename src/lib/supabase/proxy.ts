@@ -3,7 +3,11 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { getSupabasePublicEnv } from "@/lib/env";
 
-const PUBLIC_PATHS = new Set(["/login", "/signup", "/api/scheduler/tick"]);
+const PUBLIC_PATHS = new Set(["/login", "/signup", "/api/scheduler/tick", "/api/webhooks/vapi"]);
+
+function isRecordingPath(path: string) {
+  return /^\/api\/calls\/[^/]+\/recording$/.test(path);
+}
 
 export async function updateSession(request: NextRequest) {
   const path = request.nextUrl.pathname;
@@ -11,6 +15,9 @@ export async function updateSession(request: NextRequest) {
   const env = getSupabasePublicEnv();
 
   if (!env) {
+    if (isRecordingPath(path)) {
+      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    }
     if (isPublic) {
       return NextResponse.next({ request });
     }
@@ -46,6 +53,10 @@ export async function updateSession(request: NextRequest) {
   // Refresh the session before any other auth decision.
   const { data } = await supabase.auth.getClaims();
   const isAuthenticated = Boolean(data?.claims);
+
+  if (!isAuthenticated && isRecordingPath(path)) {
+    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+  }
 
   if (!isAuthenticated && !isPublic) {
     const loginUrl = request.nextUrl.clone();

@@ -53,7 +53,11 @@ async function CampaignCallsContent({ params }: { params: Promise<{ id: string }
           <TableBody>
             {calls.calls.map((call) => (
               <TableRow key={call.id}>
-                <TableCell>{formatDateTime(call.startedAt)}</TableCell>
+                <TableCell>
+                  <Link href={`/calls/${call.id}`} className="hover:underline">
+                    {formatDateTime(call.startedAt)}
+                  </Link>
+                </TableCell>
                 <TableCell>{call.maskedPhone}</TableCell>
                 <TableCell className="capitalize">{call.status.replaceAll("_", " ")}</TableCell>
                 <TableCell className="capitalize">{call.outcome?.replaceAll("_", " ") ?? "—"}</TableCell>

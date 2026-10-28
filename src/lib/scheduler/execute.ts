@@ -9,7 +9,7 @@ import { voiceProviderMode } from "@/lib/providers/mode";
 import { computeBatchSize } from "@/lib/scheduler/batch";
 import { explainScheduler } from "@/lib/scheduler/explain";
 import { isLeadEligible, retryAtIso } from "@/lib/scheduler/leads";
-import { reconcileAction, stuckCallAfterMs } from "@/lib/scheduler/reconcile";
+import { callAgeMs, reconcileAction, stuckCallAfterMs } from "@/lib/scheduler/reconcile";
 import type { TickCampaignResult } from "@/lib/scheduler/engine";
 import { isCampaignOpen } from "@/lib/scheduler/window";
 
@@ -203,18 +203,26 @@ async function reconcileCampaign(
       mode,
     );
     if (action === "wait" || !call.id) continue;
-    if (action === "timeout") {
-      await applyCallResult(supabase, String(call.id), { endedReason: "timeout", outcome: "failed" }, now);
+    const age = callAgeMs(typeof call.started_at === "string" ? call.started_at : null, now) ?? 0;
+    const timeout = { endedReason: "timeout", outcome: "failed" as const };
+    if (action === "timeout" || !call.provider_call_id) {
+      if (action === "timeout" || age >= stuckCallAfterMs) {
+        await applyCallResult(supabase, String(call.id), timeout, now);
+      }
       continue;
     }
-    if (!call.provider_call_id) continue;
     try {
       provider ??= getVoiceProvider();
       const snapshot = await provider.getCall(String(call.provider_call_id));
-      if (snapshot.status !== "ended" && snapshot.status !== "failed") continue;
-      await applyCallResult(supabase, String(call.id), snapshot, now);
+      if (snapshot.status === "ended" || snapshot.status === "failed") {
+        await applyCallResult(supabase, String(call.id), snapshot, now);
+        continue;
+      }
     } catch {
-      // A provider refresh failure leaves the call in progress until the timeout.
+      // A lost webhook falls through to the timeout once the call is old enough.
+    }
+    if (age >= stuckCallAfterMs) {
+      await applyCallResult(supabase, String(call.id), timeout, now);
     }
   }
 

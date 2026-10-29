@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { DeferredPage } from "@/components/deferred-page";
 import { Badge } from "@/components/ui/badge";
-import { evaluatePreflight } from "@/lib/dashboard/preflight";
+import { evaluatePreflight, goLiveBlocked, type PreflightStatus } from "@/lib/dashboard/preflight";
 import { googleCredentialsReady, secretPresent } from "@/lib/dashboard/load";
 import { requireUser } from "@/lib/auth";
 
@@ -46,7 +46,8 @@ async function GoLiveContent() {
     dncReadable: !dnc.error,
     dncCount: dnc.count ?? 0,
   });
-  const ready = checks.every((check) => check.status === "pass");
+  const blocked = goLiveBlocked(checks);
+  const warned = checks.some((check) => check.status === "warn");
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
@@ -56,7 +57,11 @@ async function GoLiveContent() {
         </Link>
         <h1 className="mt-2 text-2xl font-semibold tracking-tight">Go live</h1>
         <p className="text-sm text-muted-foreground">
-          {ready ? "Every check passed. You can switch VOICE_PROVIDER_MODE to live." : "Fix the failed checks before placing real calls."}
+          {blocked
+            ? "Fix the failed checks before placing real calls."
+            : warned
+              ? "You can go live. Warnings do not block it."
+              : "Every check passed. You can switch VOICE_PROVIDER_MODE to live."}
         </p>
       </div>
       <ul className="flex flex-col gap-3">
@@ -64,9 +69,7 @@ async function GoLiveContent() {
           <li key={check.id} className="rounded-xl border p-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-sm font-medium">{check.label}</h2>
-              <Badge variant={check.status === "pass" ? "default" : "destructive"}>
-                {check.status === "pass" ? "PASS" : "FAIL"}
-              </Badge>
+              <StatusBadge status={check.status} />
             </div>
             <p className="mt-1 text-sm text-muted-foreground">{check.detail}</p>
           </li>
@@ -74,4 +77,15 @@ async function GoLiveContent() {
       </ul>
     </div>
   );
+}
+
+function StatusBadge({ status }: { status: PreflightStatus }) {
+  if (status === "warn") {
+    return (
+      <Badge variant="outline" className="border-yellow-400 bg-yellow-100 text-yellow-950">
+        WARN
+      </Badge>
+    );
+  }
+  return <Badge variant={status === "pass" ? "default" : "destructive"}>{status === "pass" ? "PASS" : "FAIL"}</Badge>;
 }

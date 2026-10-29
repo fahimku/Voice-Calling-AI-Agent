@@ -4,14 +4,8 @@ import { DeleteAgentButton } from "@/components/agents/delete-agent-button";
 import { DeferredPage } from "@/components/deferred-page";
 import { FlashNotice } from "@/components/flash-notice";
 import { buttonVariants } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { PagedTable } from "@/components/ui/paged-table";
+import { TableCell, TableHead, TableRow } from "@/components/ui/table";
 import { listAgents } from "@/lib/agents";
 import { formatCreated, shortenId } from "@/lib/format";
 import { businessTypeLabels } from "@/lib/validation/agents";
@@ -58,8 +52,8 @@ async function AgentsContent({
           </Link>
         </div>
       ) : (
-        <Table>
-          <TableHeader>
+        <PagedTable
+          header={
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead>Business type</TableHead>
@@ -67,9 +61,8 @@ async function AgentsContent({
               <TableHead>Created</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
-          </TableHeader>
-          <TableBody>
-            {agents.map((agent) => (
+          }
+          rows={agents.map((agent) => (
               <TableRow key={agent.id}>
                 <TableCell className="font-medium">{agent.name}</TableCell>
                 <TableCell>{businessTypeLabels[agent.business_type]}</TableCell>
@@ -86,9 +79,8 @@ async function AgentsContent({
                   </div>
                 </TableCell>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+          ))}
+        />
       )}
     </div>
   );

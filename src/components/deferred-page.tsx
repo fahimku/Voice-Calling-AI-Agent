@@ -4,7 +4,7 @@ export function DeferredPage({ children }: { children: React.ReactNode }) {
   return <Suspense fallback={<PageSkeleton />}>{children}</Suspense>;
 }
 
-function PageSkeleton() {
+export function PageSkeleton() {
   return (
     <div className="flex flex-col gap-4" aria-busy="true" aria-live="polite">
       <p className="sr-only">Loading</p>

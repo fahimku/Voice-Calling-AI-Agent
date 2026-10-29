@@ -4,7 +4,7 @@ import { isMissingColumn } from "@/lib/db-error";
 import { normalizePhone } from "@/lib/phone/normalize";
 import { leadStatuses, type LeadStatus } from "@/lib/validation/leads";
 
-export const LEADS_PAGE_SIZE = 25;
+import { defaultTablePageSize, type TablePageSize } from "@/lib/table-page";
 
 export type LeadCounts = {
   total: number;
@@ -33,6 +33,7 @@ export type LeadListQuery = {
   q: string;
   status: LeadStatus | null;
   page: number;
+  pageSize: TablePageSize;
   sort: "asc" | "desc";
 };
 
@@ -137,23 +138,24 @@ export async function listLeads(campaignId: string, query: LeadListQuery) {
     return scoped.order("created_at", { ascending: query.sort === "asc" });
   }
 
-  const from = (query.page - 1) * LEADS_PAGE_SIZE;
-  let first = await pageQuery().range(from, from + LEADS_PAGE_SIZE - 1);
+  const pageSize = query.pageSize || defaultTablePageSize;
+  const from = (query.page - 1) * pageSize;
+  let first = await pageQuery().range(from, from + pageSize - 1);
   if (first.error && isMissingColumn(first.error)) {
     includeDirty = false;
-    first = await pageQuery().range(from, from + LEADS_PAGE_SIZE - 1);
+    first = await pageQuery().range(from, from + pageSize - 1);
   }
 
   if (first.error) throw new Error("Could not load leads.");
 
   const total = first.count ?? 0;
-  const pageCount = Math.max(1, Math.ceil(total / LEADS_PAGE_SIZE));
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
   const page = Math.min(query.page, pageCount);
   let rows = first.data;
 
   if (page !== query.page) {
-    const retryFrom = (page - 1) * LEADS_PAGE_SIZE;
-    const second = await pageQuery().range(retryFrom, retryFrom + LEADS_PAGE_SIZE - 1);
+    const retryFrom = (page - 1) * pageSize;
+    const second = await pageQuery().range(retryFrom, retryFrom + pageSize - 1);
     if (second.error) throw new Error("Could not load leads.");
     rows = second.data;
   }

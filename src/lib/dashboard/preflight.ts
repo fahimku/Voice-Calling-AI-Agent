@@ -1,4 +1,7 @@
-export type PreflightStatus = "pass" | "fail";
+export type PreflightStatus = "pass" | "warn" | "fail";
+
+export const emptyDncWarning =
+  "No numbers yet. Fine for a new account, but ask the client for any existing opt-out list and import it in Settings.";
 
 export type PreflightCheck = {
   id: string;
@@ -54,11 +57,13 @@ export function evaluatePreflight(input: {
       ? "Google credentials are present for the connected sheet."
       : "A sheet is connected, but the service account email or private key is missing.";
 
-  const dncDetail = !input.dncReadable
-    ? "The do-not-call list could not be read."
-    : input.dncCount > 0
-      ? `${input.dncCount} number${input.dncCount === 1 ? "" : "s"} on the do-not-call list.`
-      : "The do-not-call list is empty. Add numbers that must never be called.";
+  const dncStatus: PreflightStatus = !input.dncReadable ? "fail" : input.dncCount > 0 ? "pass" : "warn";
+  const dncDetail =
+    dncStatus === "fail"
+      ? "The do-not-call list could not be read."
+      : dncStatus === "pass"
+        ? `${input.dncCount} number${input.dncCount === 1 ? "" : "s"} on the do-not-call list.`
+        : emptyDncWarning;
 
   return [
     {
@@ -102,8 +107,12 @@ export function evaluatePreflight(input: {
     {
       id: "dnc",
       label: "Do-not-call list",
-      status: input.dncReadable && input.dncCount > 0 ? "pass" : "fail",
+      status: dncStatus,
       detail: dncDetail,
     },
   ];
+}
+
+export function goLiveBlocked(checks: PreflightCheck[]) {
+  return checks.some((check) => check.status === "fail");
 }

@@ -96,7 +96,7 @@ The checklist reports PASS or FAIL. It never prints secret values.
 - The external cron returns 200.
 - A sheet shared with the service account as Editor, if you write results back.
 - The assistant’s opening line says it is an AI and that the call may be recorded.
-- The do-not-call list contains numbers that must never be called.
+- Import any existing opt-out numbers in Settings. An empty do-not-call list is a warning, not a failed check.
 
 ## First 20 real test calls
 

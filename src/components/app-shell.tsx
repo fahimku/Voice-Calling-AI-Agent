@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 
 import { logout } from "@/app/(auth)/actions";
+import { BrandLogo } from "@/components/brand-logo";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -67,7 +68,15 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
 }
 
 function ModeBadge({ mode }: { mode: "mock" | "live" }) {
-  return <Badge variant={mode === "live" ? "default" : "outline"}>{mode === "live" ? "LIVE MODE" : "MOCK MODE"}</Badge>;
+  const live = mode === "live";
+  return (
+    <Badge
+      variant="outline"
+      className={live ? "border-green-300 bg-green-100 text-green-900" : "border-yellow-400 bg-yellow-100 text-yellow-950"}
+    >
+      {live ? "LIVE MODE" : "MOCK MODE"}
+    </Badge>
+  );
 }
 
 function AccountFooter({ email }: { email: string }) {
@@ -98,7 +107,9 @@ function MobileNav({ email }: { email: string }) {
       </SheetTrigger>
       <SheetContent side="left" className="bg-sidebar text-sidebar-foreground">
         <SheetHeader>
-          <SheetTitle>Calling Agent</SheetTitle>
+          <SheetTitle>
+            <BrandLogo />
+          </SheetTitle>
         </SheetHeader>
         <div className="flex flex-1 flex-col gap-6 px-4 pb-4">
           <NavLinks onNavigate={() => setOpen(false)} />
@@ -124,8 +135,7 @@ export function AppShell({
     <div className="flex min-h-svh bg-background">
       <aside className="hidden w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:flex">
         <div className="px-4 py-5">
-          <p className="text-sm font-semibold tracking-tight">Calling Agent</p>
-          <p className="text-xs text-muted-foreground">Outbound campaigns</p>
+          <BrandLogo />
         </div>
         <div className="flex-1 px-2">
           <NavLinks />
@@ -139,7 +149,7 @@ export function AppShell({
           <div className="md:hidden">
             <MobileNav email={email} />
           </div>
-          <p className="text-sm font-semibold md:hidden">Calling Agent</p>
+          <BrandLogo compact className="md:hidden" />
           <div className="ml-auto">
             <ModeBadge mode={mode} />
           </div>

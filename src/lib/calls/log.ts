@@ -4,8 +4,7 @@ import { z } from "zod";
 import { requireUser } from "@/lib/auth";
 import { isMissingColumn } from "@/lib/db-error";
 import { maskPhone } from "@/lib/phone/normalize";
-
-export const callsPageSize = 25;
+import { defaultTablePageSize, parsePageSize, type TablePageSize } from "@/lib/table-page";
 
 export const callOutcomes = [
   "no_answer",
@@ -36,6 +35,7 @@ export type CallLogQuery = {
   to: string;
   kind: "all" | "test" | "real";
   page: number;
+  pageSize: TablePageSize;
 };
 
 const dayPattern = /^\d{4}-\d{2}-\d{2}$/;
@@ -47,6 +47,7 @@ export function parseCallLogQuery(input: {
   to?: string;
   kind?: string;
   page?: string;
+  per?: string;
 }): CallLogQuery {
   const page = Number(input.page);
   const outcome = callOutcomes.find((item) => item === input.outcome) ?? "";
@@ -57,6 +58,7 @@ export function parseCallLogQuery(input: {
     to: input.to && dayPattern.test(input.to) ? input.to : "",
     kind: input.kind === "test" || input.kind === "real" ? input.kind : "all",
     page: Number.isInteger(page) && page > 0 ? page : 1,
+    pageSize: parsePageSize(input.per),
   };
 }
 
@@ -69,6 +71,7 @@ export function callLogHref(query: CallLogQuery, patch: Partial<CallLogQuery> = 
   if (next.to) params.set("to", next.to);
   if (next.kind !== "all") params.set("kind", next.kind);
   if (next.page > 1) params.set("page", String(next.page));
+  if (next.pageSize !== defaultTablePageSize) params.set("per", String(next.pageSize));
   const search = params.toString();
   return `/calls${search ? `?${search}` : ""}`;
 }
@@ -124,8 +127,8 @@ export async function listCallLog(query: CallLogQuery) {
     if (end) request = request.lt("started_at", end);
   }
 
-  const start = (query.page - 1) * callsPageSize;
-  const result = await request.range(start, start + callsPageSize - 1);
+  const start = (query.page - 1) * query.pageSize;
+  const result = await request.range(start, start + query.pageSize - 1);
   if (result.error) return { ok: false as const, message: "Could not load calls." };
 
   const calls: CallLogItem[] = (result.data ?? []).map((row) => {

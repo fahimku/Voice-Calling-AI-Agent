@@ -127,4 +127,37 @@
   html {
     @apply font-sans;
   }
+  input[type="date"],
+  input[type="datetime-local"],
+  input[type="time"] {
+    color-scheme: light;
+    min-height: 2.5rem;
+  }
+  input[type="date"]::-webkit-calendar-picker-indicator,
+  input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    margin-inline-start: 0.35rem;
+    opacity: 0.75;
+  }
+}
+
+[data-sonner-toast][data-type="success"] {
+  background: #ecfdf3 !important;
+  border-color: #86efac !important;
+  color: #14532d !important;
+}
+[data-sonner-toast][data-type="error"] {
+  background: #fef2f2 !important;
+  border-color: #fca5a5 !important;
+  color: #7f1d1d !important;
+}
+[data-sonner-toast][data-type="warning"] {
+  background: #fefce8 !important;
+  border-color: #facc15 !important;
+  color: #713f12 !important;
+}
+[data-sonner-toast][data-type="loading"] {
+  background: #f0fdfa !important;
+  border-color: #5eead4 !important;
+  color: #115e59 !important;
 }

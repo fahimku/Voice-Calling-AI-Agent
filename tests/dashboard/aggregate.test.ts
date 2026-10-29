@@ -2,7 +2,7 @@ import { DateTime } from "luxon";
 import { describe, expect, it } from "vitest";
 
 import { buildOutcomeSeries, campaignsOutsideWindow, formatUsd, funnelSteps, sumCampaignUsage } from "@/lib/dashboard/aggregate";
-import { evaluatePreflight, publicAppUrlOk } from "@/lib/dashboard/preflight";
+import { emptyDncWarning, evaluatePreflight, goLiveBlocked, publicAppUrlOk } from "@/lib/dashboard/preflight";
 
 describe("dashboard aggregation", () => {
   it("sums daily usage and fills 14 outcome days", () => {
@@ -67,7 +67,8 @@ describe("go-live checks", () => {
     expect(checks.find((check) => check.id === "agents")?.status).toBe("fail");
     expect(checks.find((check) => check.id === "app-url")?.status).toBe("fail");
     expect(checks.find((check) => check.id === "google")?.status).toBe("fail");
-    expect(checks.find((check) => check.id === "dnc")?.status).toBe("fail");
+    expect(checks.find((check) => check.id === "dnc")?.status).toBe("warn");
+    expect(goLiveBlocked(checks)).toBe(true);
     expect(checks.find((check) => check.id === "webhook-secret")?.status).toBe("pass");
     expect(JSON.stringify(checks)).not.toContain(secret);
   });
@@ -85,5 +86,40 @@ describe("go-live checks", () => {
       dncCount: 2,
     });
     expect(checks.every((check) => check.status === "pass")).toBe(true);
+    expect(goLiveBlocked(checks)).toBe(false);
+  });
+
+  it("warns on an empty do-not-call list and still allows go-live", () => {
+    const checks = evaluatePreflight({
+      vapiKeyPresent: true,
+      webhookSecretPresent: true,
+      cronSecretPresent: true,
+      appUrl: "https://calls.example.com",
+      activeCampaigns: [{ name: "Bright", assistantId: "asst", phoneNumberId: "phone" }],
+      sheetConnected: false,
+      googleReady: false,
+      dncReadable: true,
+      dncCount: 0,
+    });
+    const dnc = checks.find((check) => check.id === "dnc");
+    expect(dnc?.status).toBe("warn");
+    expect(dnc?.detail).toBe(emptyDncWarning);
+    expect(goLiveBlocked(checks)).toBe(false);
+  });
+
+  it("fails when the do-not-call list cannot be read", () => {
+    const checks = evaluatePreflight({
+      vapiKeyPresent: true,
+      webhookSecretPresent: true,
+      cronSecretPresent: true,
+      appUrl: "https://calls.example.com",
+      activeCampaigns: [],
+      sheetConnected: false,
+      googleReady: false,
+      dncReadable: false,
+      dncCount: 0,
+    });
+    expect(checks.find((check) => check.id === "dnc")?.status).toBe("fail");
+    expect(goLiveBlocked(checks)).toBe(true);
   });
 });

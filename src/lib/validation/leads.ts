@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { MAX_IMPORT_ROWS } from "@/lib/leads/preview";
+import { parsePageSize } from "@/lib/table-page";
 
 export const leadStatuses = [
   "pending",
@@ -67,6 +68,7 @@ export function parseLeadListQuery(input: {
   q?: string;
   status?: string;
   page?: string;
+  per?: string;
   sort?: string;
 }) {
   const pageNumber = Number(input.page);
@@ -76,6 +78,7 @@ export function parseLeadListQuery(input: {
     q: (input.q ?? "").trim().slice(0, 80),
     status,
     page: Number.isInteger(pageNumber) && pageNumber > 0 ? pageNumber : 1,
+    pageSize: parsePageSize(input.per),
     sort: input.sort === "asc" ? ("asc" as const) : ("desc" as const),
   };
 }

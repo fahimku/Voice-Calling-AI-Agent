@@ -9,9 +9,12 @@ import { LeadsTable } from "@/components/leads/leads-table";
 import { CampaignSectionNav } from "@/components/campaigns/campaign-section-nav";
 import { StatusBadge } from "@/components/campaigns/status-badge";
 import { DeferredPage } from "@/components/deferred-page";
+import { fieldControlClass, filterLabelClass } from "@/components/form-controls";
 import { buttonVariants } from "@/components/ui/button";
-import { LEADS_PAGE_SIZE, listLeads } from "@/lib/leads";
+import { TablePager } from "@/components/ui/table-pager";
+import { listLeads } from "@/lib/leads";
 import { leadsHref } from "@/lib/leads/links";
+import { pagerLinkSet, sizeLinkSet } from "@/lib/table-page";
 import { SAMPLE_LEADS_CSV } from "@/lib/leads/csv";
 import { leadStatusLabels, leadStatuses, parseLeadListQuery } from "@/lib/validation/leads";
 
@@ -20,7 +23,7 @@ export default function CampaignLeadsPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ q?: string; status?: string; page?: string; sort?: string }>;
+  searchParams: Promise<{ q?: string; status?: string; page?: string; per?: string; sort?: string }>;
 }) {
   return (
     <DeferredPage>
@@ -34,7 +37,7 @@ async function CampaignLeadsContent({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ q?: string; status?: string; page?: string; sort?: string }>;
+  searchParams: Promise<{ q?: string; status?: string; page?: string; per?: string; sort?: string }>;
 }) {
   const [{ id }, queryInput] = await Promise.all([params, searchParams]);
   if (!z.uuid().safeParse(id).success) notFound();
@@ -80,22 +83,22 @@ async function CampaignLeadsContent({
         ))}
       </dl>
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <form action={`/campaigns/${campaign.id}/leads`} className="flex flex-wrap items-end gap-2">
-          <label className="flex flex-col gap-1 text-sm font-medium">
+        <form action={`/campaigns/${campaign.id}/leads`} className="flex flex-wrap items-end gap-2 rounded-xl border bg-card p-3">
+          <label className={filterLabelClass}>
             Search
             <input
               name="q"
               defaultValue={query.q}
               placeholder="Name or phone"
-              className="h-10 rounded-lg border bg-background px-3"
+              className={fieldControlClass}
             />
           </label>
-          <label className="flex flex-col gap-1 text-sm font-medium">
+          <label className={filterLabelClass}>
             Status
             <select
               name="status"
               defaultValue={query.status ?? ""}
-              className="h-10 rounded-lg border bg-background px-3"
+              className={fieldControlClass}
             >
               <option value="">All</option>
               {leadStatuses.map((status) => (
@@ -106,7 +109,8 @@ async function CampaignLeadsContent({
             </select>
           </label>
           {query.sort === "asc" ? <input type="hidden" name="sort" value="asc" /> : null}
-          <button type="submit" className={buttonVariants({ variant: "outline" })}>
+          {query.pageSize !== 10 ? <input type="hidden" name="per" value={query.pageSize} /> : null}
+          <button type="submit" className={`${buttonVariants({ variant: "default" })} h-10 px-4`}>
             Apply
           </button>
         </form>
@@ -140,38 +144,29 @@ async function CampaignLeadsContent({
           campaignId={campaign.id}
           leads={leads}
           sheetConnected={Boolean(campaign.sheetId)}
+          footer={
+            <TablePager
+              page={page}
+              pageSize={query.pageSize}
+              total={total}
+              pageCount={pageCount}
+              {...pagerLinkSet(page, pageCount, (nextPage) => leadsHref(campaign.id, query, { page: nextPage }))}
+              sizeHrefs={sizeLinkSet((pageSize) => leadsHref(campaign.id, query, { page: 1, pageSize }))}
+            />
+          }
           createdSort={
             <Link
               href={leadsHref(campaign.id, query, {
                 sort: query.sort === "asc" ? "desc" : "asc",
                 page: 1,
               })}
-              className="hover:underline"
+              className="text-white hover:underline"
             >
               Created {query.sort === "asc" ? "↑" : "↓"}
             </Link>
           }
         />
       )}
-      {total > LEADS_PAGE_SIZE ? (
-        <div className="flex items-center justify-between text-sm">
-          <p className="text-muted-foreground">
-            Page {Math.min(page, pageCount)} of {pageCount}
-          </p>
-          <div className="flex gap-2">
-            {page > 1 ? (
-              <Link href={leadsHref(campaign.id, query, { page: page - 1 })} className={buttonVariants({ variant: "outline", size: "sm" })}>
-                Previous
-              </Link>
-            ) : null}
-            {page < pageCount ? (
-              <Link href={leadsHref(campaign.id, query, { page: page + 1 })} className={buttonVariants({ variant: "outline", size: "sm" })}>
-                Next
-              </Link>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }

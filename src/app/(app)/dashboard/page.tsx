@@ -7,7 +7,8 @@ import { FunnelBars } from "@/components/dashboard/funnel-bars";
 import { PauseAllButton } from "@/components/dashboard/pause-all-button";
 import { DeferredPage } from "@/components/deferred-page";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { PagedTable } from "@/components/ui/paged-table";
+import { TableCell, TableHead, TableRow } from "@/components/ui/table";
 import { formatUsd } from "@/lib/dashboard/aggregate";
 import { loadDashboard, migrationNotice } from "@/lib/dashboard/load";
 import { requireUser } from "@/lib/auth";
@@ -170,8 +171,8 @@ async function DashboardContent({ searchParams }: { searchParams: Promise<{ camp
           {data.recent.length === 0 ? (
             <p className="text-sm text-muted-foreground">No calls yet.</p>
           ) : (
-            <Table>
-              <TableHeader>
+            <PagedTable
+              header={
                 <TableRow>
                   <TableHead>When</TableHead>
                   <TableHead>Campaign</TableHead>
@@ -179,9 +180,8 @@ async function DashboardContent({ searchParams }: { searchParams: Promise<{ camp
                   <TableHead>Outcome</TableHead>
                   <TableHead>Cost</TableHead>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {data.recent.map((call) => (
+              }
+              rows={data.recent.map((call) => (
                   <TableRow key={call.id}>
                     <TableCell>
                       <Link href={`/calls/${call.id}`} className="hover:underline">
@@ -200,9 +200,8 @@ async function DashboardContent({ searchParams }: { searchParams: Promise<{ camp
                       {call.costIsMock ? " mock" : ""}
                     </TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+              ))}
+            />
           )}
         </CardContent>
       </Card>

@@ -5,14 +5,8 @@ import { StatusBadge } from "@/components/campaigns/status-badge";
 import { DeferredPage } from "@/components/deferred-page";
 import { FlashNotice } from "@/components/flash-notice";
 import { buttonVariants } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { PagedTable } from "@/components/ui/paged-table";
+import { TableCell, TableHead, TableRow } from "@/components/ui/table";
 import { listCampaigns } from "@/lib/campaigns";
 import { formatActiveDays, formatCreated, formatWindow } from "@/lib/format";
 
@@ -58,8 +52,8 @@ async function CampaignsContent({
           </Link>
         </div>
       ) : (
-        <Table>
-          <TableHeader>
+        <PagedTable
+          header={
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead>Agent</TableHead>
@@ -69,9 +63,8 @@ async function CampaignsContent({
               <TableHead>Created</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
-          </TableHeader>
-          <TableBody>
-            {campaigns.map((campaign) => (
+          }
+          rows={campaigns.map((campaign) => (
               <TableRow key={campaign.id}>
                 <TableCell className="font-medium">
                   <Link href={`/campaigns/${campaign.id}`} className="hover:underline">
@@ -102,9 +95,8 @@ async function CampaignsContent({
                   </div>
                 </TableCell>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+          ))}
+        />
       )}
     </div>
   );

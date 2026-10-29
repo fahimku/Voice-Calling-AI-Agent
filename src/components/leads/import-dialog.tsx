@@ -7,6 +7,8 @@ import { toast } from "sonner";
 import { importLeads, matchImportPhones } from "@/app/(app)/campaigns/[id]/leads/actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PagedTable } from "@/components/ui/paged-table";
+import { TableCell, TableHead, TableRow } from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -24,7 +26,6 @@ import {
   mapLeadRows,
   MAX_IMPORT_BYTES,
   previewImport,
-  PREVIEW_ROW_LIMIT,
   type ImportPreview,
   type PreviewStatus,
 } from "@/lib/leads/preview";
@@ -237,34 +238,28 @@ export function ImportDialog({ campaignId, active }: { campaignId: string; activ
               <Count label="Existing" value={counts.duplicateExisting} />
               <Count label="DNC" value={counts.dnc} />
             </dl>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="border-b text-muted-foreground">
-                    <th className="py-2 pr-3 font-medium">Row</th>
-                    <th className="py-2 pr-3 font-medium">Name</th>
-                    <th className="py-2 pr-3 font-medium">Phone</th>
-                    <th className="py-2 pr-3 font-medium">Status</th>
-                    <th className="py-2 font-medium">Reason</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {preview.rows.slice(0, PREVIEW_ROW_LIMIT).map((row) => (
-                    <tr key={row.rowNumber} className="border-b">
-                      <td className="py-2 pr-3">{row.rowNumber}</td>
-                      <td className="py-2 pr-3">{row.name ?? "—"}</td>
-                      <td className="py-2 pr-3">{row.phone ?? row.rawPhone}</td>
-                      <td className="py-2 pr-3">
-                        <Badge variant={row.status === "valid" ? "default" : "outline"}>
-                          {previewLabels[row.status]}
-                        </Badge>
-                      </td>
-                      <td className="py-2">{row.reason ?? "—"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <PagedTable
+              header={
+                <TableRow>
+                  <TableHead>Row</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Phone</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Reason</TableHead>
+                </TableRow>
+              }
+              rows={preview.rows.map((row) => (
+                <TableRow key={row.rowNumber}>
+                  <TableCell>{row.rowNumber}</TableCell>
+                  <TableCell>{row.name ?? "—"}</TableCell>
+                  <TableCell>{row.phone ?? row.rawPhone}</TableCell>
+                  <TableCell>
+                    <Badge variant={row.status === "valid" ? "default" : "outline"}>{previewLabels[row.status]}</Badge>
+                  </TableCell>
+                  <TableCell>{row.reason ?? "—"}</TableCell>
+                </TableRow>
+              ))}
+            />
             {counts.invalid > 0 ? (
               <button
                 type="button"

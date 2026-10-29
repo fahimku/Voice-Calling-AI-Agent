@@ -5,7 +5,8 @@ import { z } from "zod";
 import { CampaignSectionNav } from "@/components/campaigns/campaign-section-nav";
 import { DeferredPage } from "@/components/deferred-page";
 import { buttonVariants } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { PagedTable } from "@/components/ui/paged-table";
+import { TableCell, TableHead, TableRow } from "@/components/ui/table";
 import { listCampaignCalls } from "@/lib/calls";
 import { getCampaign } from "@/lib/campaigns";
 import { formatDateTime } from "@/lib/format";
@@ -40,8 +41,8 @@ async function CampaignCallsContent({ params }: { params: Promise<{ id: string }
       ) : calls.calls.length === 0 ? (
         <p className="text-sm text-muted-foreground">No campaign calls yet.</p>
       ) : (
-        <Table>
-          <TableHeader>
+        <PagedTable
+          header={
             <TableRow>
               <TableHead>Started</TableHead>
               <TableHead>Phone</TableHead>
@@ -49,9 +50,8 @@ async function CampaignCallsContent({ params }: { params: Promise<{ id: string }
               <TableHead>Outcome</TableHead>
               <TableHead>Attempt</TableHead>
             </TableRow>
-          </TableHeader>
-          <TableBody>
-            {calls.calls.map((call) => (
+          }
+          rows={calls.calls.map((call) => (
               <TableRow key={call.id}>
                 <TableCell>
                   <Link href={`/calls/${call.id}`} className="hover:underline">
@@ -63,9 +63,8 @@ async function CampaignCallsContent({ params }: { params: Promise<{ id: string }
                 <TableCell className="capitalize">{call.outcome?.replaceAll("_", " ") ?? "—"}</TableCell>
                 <TableCell>{call.attemptNumber ?? "—"}</TableCell>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+          ))}
+        />
       )}
       <Link href={`/campaigns/${campaign.id}`} className={buttonVariants({ variant: "outline" })}>
         Back to settings

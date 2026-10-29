@@ -5,14 +5,7 @@ import { useState } from "react";
 import { DeleteLeadButton } from "@/components/leads/delete-lead-button";
 import { LeadStatusBadge } from "@/components/leads/lead-status-badge";
 import { Switch } from "@/components/ui/switch";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { LeadListItem } from "@/lib/leads";
 import { formatCreated, formatDateTime } from "@/lib/format";
 import { maskPhone } from "@/lib/phone/normalize";
@@ -22,11 +15,13 @@ export function LeadsTable({
   leads,
   createdSort,
   sheetConnected,
+  footer,
 }: {
   campaignId: string;
   leads: LeadListItem[];
   createdSort: React.ReactNode;
   sheetConnected: boolean;
+  footer?: React.ReactNode;
 }) {
   const [showFull, setShowFull] = useState(false);
 
@@ -36,7 +31,7 @@ export function LeadsTable({
         Show full numbers
         <Switch checked={showFull} onCheckedChange={setShowFull} />
       </label>
-      <Table>
+      <Table footer={footer}>
         <TableHeader>
           <TableRow>
             <TableHead>Name</TableHead>

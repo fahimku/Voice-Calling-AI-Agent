@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useActionState, useState } from "react";
 
 import type { AuthFormState } from "@/app/(auth)/actions";
+import { BrandLogo } from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -39,9 +40,7 @@ export function AuthForm({
   return (
     <Card className="w-full max-w-sm">
       <CardHeader>
-        <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-          Calling Agent
-        </p>
+        <BrandLogo href="/" />
         <CardTitle className="text-xl">{title}</CardTitle>
         <CardDescription>{description}</CardDescription>
       </CardHeader>

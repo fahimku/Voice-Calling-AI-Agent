@@ -1,16 +1,11 @@
 import { bindings, defineConfig, defineWorker } from "cf/config";
-import { createWorkersResponseStoreSelfContainedConfig } from "@vinext/cloudflare/cache/config";
+import { createWorkersCacheConfig } from "@vinext/cloudflare/cache/config";
 
-const workerName = "voice-calling-ai-agent";
-
-const responseStore = await createWorkersResponseStoreSelfContainedConfig({
-  worker: workerName,
-  bucket: "voice-calling-ai-agent-cache-bodies",
-});
+const cache = await createWorkersCacheConfig();
 
 export default defineConfig({
   worker: defineWorker({
-    name: workerName,
+    name: "voice-calling-ai-agent",
     entrypoint: "vinext/server/fetch-handler",
     compatibilityDate: "2026-10-29",
     compatibilityFlags: ["nodejs_compat"],
@@ -19,10 +14,10 @@ export default defineConfig({
       notFoundHandling: "none",
       runWorkerFirst: ["/*", "!/_next/static/*", "!/*/_next/static/*"],
     },
-    cache: responseStore.cache,
-    exports: responseStore.exports,
+    cache: cache.cache,
+    exports: cache.exports,
     env: {
-      ...responseStore.env,
+      ...cache.env,
       ASSETS: bindings.assets(),
       IMAGES: bindings.images(),
     },

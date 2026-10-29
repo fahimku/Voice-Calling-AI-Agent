@@ -6,6 +6,15 @@ import { workersCacheCdnAdapter } from "@vinext/cloudflare/cache/workers-cache-c
 import { imagesOptimizer } from "@vinext/cloudflare/images/images-optimizer";
 
 export default defineConfig({
+  // Cloudflare rejects a Worker whose source maps exceed 60 MiB. The plugin
+  // emits maps unless this is false, and `cf deploy` uploads every map it finds.
+  build: {
+    sourcemap: false,
+  },
+  environments: {
+    rsc: { build: { sourcemap: false } },
+    ssr: { build: { sourcemap: false } },
+  },
   plugins: [
     tailwindcss(),
     vinext({

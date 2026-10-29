@@ -132,20 +132,20 @@ export function AppShell({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-svh bg-background">
-      <aside className="hidden w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:flex">
-        <div className="px-4 py-5">
+    <div className="flex h-svh overflow-hidden bg-background">
+      <aside className="hidden h-full w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:flex">
+        <div className="shrink-0 px-4 py-5">
           <BrandLogo />
         </div>
-        <div className="flex-1 px-2">
+        <div className="min-h-0 flex-1 overflow-y-auto px-2">
           <NavLinks />
         </div>
-        <div className="border-t border-sidebar-border p-3">
+        <div className="shrink-0 border-t border-sidebar-border p-3">
           <AccountFooter email={email} />
         </div>
       </aside>
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center gap-3 border-b px-4 py-3">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <header className="flex shrink-0 items-center gap-3 border-b px-4 py-3">
           <div className="md:hidden">
             <MobileNav email={email} />
           </div>
@@ -154,7 +154,7 @@ export function AppShell({
             <ModeBadge mode={mode} />
           </div>
         </header>
-        <main className="flex-1 px-4 py-6 md:px-8">{children}</main>
+        <main className="min-h-0 flex-1 overflow-y-auto px-4 py-6 md:px-8">{children}</main>
       </div>
     </div>
   );

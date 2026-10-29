@@ -9,7 +9,12 @@
     "lint": "eslint",
     "test": "vitest run",
     "tick": "node scripts/tick.mjs",
-    "simulate:webhook": "node scripts/simulate-webhook.mjs"
+    "simulate:webhook": "node scripts/simulate-webhook.mjs",
+    "dev:vinext": "vite dev --port 3001",
+    "build:vinext": "vite build",
+    "start:vinext": "vite preview",
+    "deploy:vinext": "vinext-cloudflare deploy --warm-cache",
+    "deploy:response-store": "cf deploy --prebuilt --mode production --worker callingagent-response-store"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
@@ -25,8 +30,8 @@
     "next": "16.4.2",
     "next-themes": "^0.4.6",
     "papaparse": "^5.7.0",
-    "react": "19.3.0",
-    "react-dom": "19.3.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
     "recharts": "^3.10.1",
     "shadcn": "^4.22.1",
     "sonner": "^2.0.8",
@@ -46,5 +51,6 @@
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^5.0.5"
-  }
+  },
+  "type": "module"
 }
